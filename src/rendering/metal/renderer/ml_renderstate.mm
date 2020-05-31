@@ -499,7 +499,7 @@ void MlRenderState::setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t o
 void MlRenderState::EndFrame()
 {
         if (MLRenderer->mScreenBuffers->mDrawable)
-            [commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
+            //[commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
         
         [renderCommandEncoder endEncoding];
         [commandBuffer commit];
