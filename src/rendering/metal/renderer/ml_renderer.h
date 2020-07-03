@@ -93,7 +93,7 @@ public:
     MlRenderBuffers *mBuffers = nullptr;
     MlRenderBuffers *mScreenBuffers = nullptr;
     MlRenderBuffers *mSaveBuffers = nullptr;
-    PresentUniforms mPresentShader;
+    PresentUniforms *mPresentShader = nullptr;;
     MlShaderProgram *mPresent3dCheckerShader = nullptr;
     MlShaderProgram *mPresent3dColumnShader = nullptr;
     MlShaderProgram *mPresent3dRowShader = nullptr;

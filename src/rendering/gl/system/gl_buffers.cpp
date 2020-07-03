@@ -47,6 +47,7 @@ GLBuffer::GLBuffer(int usetype)
 	: mUseType(usetype)
 {
 	glGenBuffers(1, &mBufferId);
+    mBuffer = nullptr;
 }
 
 GLBuffer::~GLBuffer()
@@ -71,9 +72,12 @@ void GLBuffer::SetData(size_t size, const void *data, bool staticdata)
 	Bind();
 	if (data != nullptr)
 	{
-        free(Buffer);
-        Buffer = (F2DDrawer::TwoDVertex *)malloc(size);
-        memcpy(Buffer, data, size);
+        if (mBuffer == nullptr)
+        {
+            mBuffer = malloc(size);
+            memcpy(mBuffer, data, size);
+        }
+        
 		glBufferData(mUseType, size, data, staticdata? GL_STATIC_DRAW : GL_STREAM_DRAW);
 	}
 	else

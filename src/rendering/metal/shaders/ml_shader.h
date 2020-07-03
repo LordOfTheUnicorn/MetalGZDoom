@@ -1,14 +1,15 @@
 #pragma once
 
 #include <memory>
-#import <Metal/Metal.h>
-
 #include "utility/vectors.h"
 #include "matrix.h"
 #include "name.h"
 #include "hwrenderer/scene/hw_renderstate.h"
-#import <simd/simd.h>
 #include "hwrenderer/data/flatvertices.h"
+#include "metal/system/ml_buffer.h"
+
+#import <simd/simd.h>
+#import <Metal/Metal.h>
 
 //class VulkanDevice;
 //class VulkanShader;
@@ -86,10 +87,10 @@ public:
     matrix_float4x4 mat;
     void matrixToMetal (VSMatrix vs)
     {
-        mat = matrix_float4x4{simd_float4{vs.mMatrix[0],vs.mMatrix[1],vs.mMatrix[2],vs.mMatrix[3]},
-            simd_float4{vs.mMatrix[4],vs.mMatrix[5],vs.mMatrix[6],vs.mMatrix[7]},
-            simd_float4{vs.mMatrix[8],vs.mMatrix[9],vs.mMatrix[10],vs.mMatrix[11]},
-            simd_float4{vs.mMatrix[12],vs.mMatrix[13],vs.mMatrix[14],vs.mMatrix[15]}};
+        mat = matrix_float4x4{simd_float4{vs.mMatrix[0] ,vs.mMatrix[1] ,vs.mMatrix[2], vs.mMatrix[3] },
+                              simd_float4{vs.mMatrix[4] ,vs.mMatrix[5] ,vs.mMatrix[6], vs.mMatrix[7] },
+                              simd_float4{vs.mMatrix[8] ,vs.mMatrix[9] ,vs.mMatrix[10],vs.mMatrix[11]},
+                              simd_float4{vs.mMatrix[12],vs.mMatrix[13],vs.mMatrix[14],vs.mMatrix[15]}};
     }
 };
 
@@ -156,7 +157,7 @@ public:
     virtual ~MlShader(){};
 
     bool Load(const char * name, const char * vert_prog_lump, const char * fragprog, const char * fragprog2, const char * light_fragprog, const char *defines);
-    bool Load();
+    bool Load(const MLVertexBufferAttribute *attr, size_t stride);
 
     bool Bind();
     unsigned int GetHandle() const { return hShader; }

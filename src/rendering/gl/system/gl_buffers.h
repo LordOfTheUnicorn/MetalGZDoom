@@ -19,6 +19,8 @@ protected:
 	int mAllocationSize = 0;
 	bool mPersistent = false;
 	bool nomap = true;
+    
+    void* mBuffer;
 
 	GLBuffer(int usetype);
 	~GLBuffer();

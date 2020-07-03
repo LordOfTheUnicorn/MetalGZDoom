@@ -68,8 +68,10 @@
 
 EXTERN_CVAR(Int, screenblocks)
 EXTERN_CVAR(Bool, cl_capfps)
+CVAR(Int, ml_dither_bpc, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
 
 extern bool NoInterpolateView;
+extern bool vid_hdr_active;
 
 void DoWriteSavePic(FileWriter *file, ESSType ssformat, uint8_t *scr, int width, int height, sector_t *viewsector, bool upsidedown);
 
@@ -101,7 +103,7 @@ void MlRenderer::Initialize(int width, int height, id<MTLDevice> device)
     mScreenBuffers = new MlRenderBuffers();
     mSaveBuffers = new MlRenderBuffers();
     mBuffers = mScreenBuffers;
-    //mPresentShader = new PresentShader;
+    mPresentShader = new PresentUniforms();
     mPresent3dCheckerShader = new MlShaderProgram();
     mPresent3dColumnShader = new MlShaderProgram();
     mPresent3dRowShader = new MlShaderProgram();
@@ -140,8 +142,8 @@ MlRenderer::~MlRenderer()
     if (mSaveBuffers)
         delete mSaveBuffers;
     
-    //if (mPresentShader)
-    //    delete mPresentShader;
+    if (mPresentShader)
+        delete mPresentShader;
     
     if (mPresent3dCheckerShader)
         delete mPresent3dCheckerShader;
@@ -340,21 +342,21 @@ void MlRenderer::BindToFrameBuffer(FMaterial *mat)
 void MlRenderer::RenderTextureView(FCanvasTexture *tex, AActor *Viewpoint, double FOV)
 {
     // This doesn't need to clear the fake flat cache. It can be shared between camera textures and the main view of a scene.
-    FMaterial * gltex = FMaterial::ValidateTexture(tex, false);
+    FMaterial * mltex = FMaterial::ValidateTexture(tex, false);
 
-    int width = gltex->TextureWidth();
-    int height = gltex->TextureHeight();
+    int width = mltex->TextureWidth();
+    int height = mltex->TextureHeight();
 
     StartOffscreen();
-    BindToFrameBuffer(gltex);
+    BindToFrameBuffer(mltex);
 
     IntRect bounds;
     bounds.left = bounds.top = 0;
     
     
     
-    bounds.width = 1440;//FHardwareTexture::GetTexDimension(gltex->GetWidth());
-    bounds.height = 900;//FHardwareTexture::GetTexDimension(gltex->GetHeight());
+    bounds.width  = 1440;//mltex->GetWidth();
+    bounds.height = 900;//mltex->GetHeight();
 
     FRenderViewpoint texvp;
     RenderViewpoint(texvp, Viewpoint, &bounds, FOV, (float)width / height, (float)width / height, false, false);
@@ -433,55 +435,38 @@ void MlRenderer::RenderScreenQuad()
 
 void MlRenderer::DrawPresentTexture(const IntRect &box, bool applyGamma)
 {
-    //glViewport(box.left, box.top, box.width, box.height);
-
-    //    mBuffers->BindDitherTexture(1);
-
-    //    glActiveTexture(GL_TEXTURE0);
-    //    if (ViewportLinearScale())
-    //    {
-    //        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    //        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    //    }
-    //    else
-    //    {
-    //        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    //        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    //    }
-
-    //    mPresentShader->Bind();
-    //    if (!applyGamma || framebuffer->IsHWGammaActive())
-    //    {
-    //        mPresentShader->Uniforms->InvGamma = 1.0f;
-    //        mPresentShader->Uniforms->Contrast = 1.0f;
-    //        mPresentShader->Uniforms->Brightness = 0.0f;
-    //        mPresentShader->Uniforms->Saturation = 1.0f;
-    //    }
-    //    else
-    //    {
-    //        mPresentShader->Uniforms->InvGamma = 1.0f / clamp<float>(Gamma, 0.1f, 4.f);
-    //        mPresentShader->Uniforms->Contrast = clamp<float>(vid_contrast, 0.1f, 3.f);
-    //        mPresentShader->Uniforms->Brightness = clamp<float>(vid_brightness, -0.8f, 0.8f);
-    //        mPresentShader->Uniforms->Saturation = clamp<float>(vid_saturation, -15.0f, 15.f);
-    //        mPresentShader->Uniforms->GrayFormula = static_cast<int>(gl_satformula);
-    //    }
-    //    if (vid_hdr_active && framebuffer->IsFullscreen())
-    //    {
-    //        // Full screen exclusive mode treats a rgba16f frame buffer as linear.
-    //        // It probably will eventually in desktop mode too, but the DWM doesn't seem to support that.
-    //        mPresentShader->Uniforms->HdrMode = 1;
-    //        mPresentShader->Uniforms->ColorScale = (gl_dither_bpc == -1) ? 1023.0f : (float)((1 << gl_dither_bpc) - 1);
-    //    }
-    //    else
-    //    {
-    //        mPresentShader->Uniforms->HdrMode = 0;
-    //        mPresentShader->Uniforms->ColorScale = (gl_dither_bpc == -1) ? 255.0f : (float)((1 << gl_dither_bpc) - 1);
-    //    }
-    //    mPresentShader->Uniforms->Scale = { screen->mScreenViewport.width / (float)mBuffers->GetWidth(), screen->mScreenViewport.height / (float)mBuffers->GetHeight() };
-    //    mPresentShader->Uniforms->Offset = { 0.0f, 0.0f };
-    //    mPresentShader->Uniforms.SetData();
-    //    static_cast<GLDataBuffer*>(mPresentShader->Uniforms.GetBuffer())->BindBase();
-        RenderScreenQuad();
+    if (!applyGamma || framebuffer->IsHWGammaActive())
+    {
+        mPresentShader->InvGamma = 1.0f;
+        mPresentShader->Contrast = 1.0f;
+        mPresentShader->Brightness = 0.0f;
+        mPresentShader->Saturation = 1.0f;
+    }
+    else
+    {
+        mPresentShader->InvGamma = 1.0f / clamp<float>(Gamma, 0.1f, 4.f);
+        mPresentShader->Contrast = clamp<float>(vid_contrast, 0.1f, 3.f);
+        mPresentShader->Brightness = clamp<float>(vid_brightness, -0.8f, 0.8f);
+        mPresentShader->Saturation = clamp<float>(vid_saturation, -15.0f, 15.f);
+        mPresentShader->GrayFormula = static_cast<int>(gl_satformula);
+    }
+    
+    if (vid_hdr_active && framebuffer->IsFullscreen())
+    {
+        // Full screen exclusive mode treats a rgba16f frame buffer as linear.
+        // It probably will eventually in desktop mode too, but the DWM doesn't seem to support that.
+        mPresentShader->HdrMode = 1;
+        mPresentShader->ColorScale = (ml_dither_bpc == -1) ? 1023.0f : (float)((1 << ml_dither_bpc) - 1);
+    }
+    else
+    {
+        mPresentShader->HdrMode = 0;
+        mPresentShader->ColorScale = (ml_dither_bpc == -1) ? 255.0f : (float)((1 << ml_dither_bpc) - 1);
+    }
+    
+    mPresentShader->Scale = { screen->mScreenViewport.width / (float)mBuffers->GetWidth(), screen->mScreenViewport.height / (float)mBuffers->GetHeight() };
+    mPresentShader->Offset = { 0.0f, 0.0f };
+    RenderScreenQuad();
 }
 
 

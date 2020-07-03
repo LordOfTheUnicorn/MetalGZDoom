@@ -140,10 +140,6 @@ public:
 
 		}
 	};
-
-	TArray<int> mIndices;
-	TArray<TwoDVertex> mVertices;
-	TArray<RenderCommand> mData;
 	
 	int AddCommand(const RenderCommand *data);
 	void AddIndices(int firstvert, int count, ...);
@@ -151,6 +147,10 @@ public:
 	void SetColorOverlay(PalEntry color, float alpha, PalEntry &vertexcolor, PalEntry &overlaycolor);
 
 public:
+    TArray<int> mIndices;
+    TArray<TwoDVertex> mVertices;
+    TArray<RenderCommand> mData;
+    
 	void AddTexture(FTexture *img, DrawParms &parms);
 	void AddShape(FTexture *img, DShape2D *shape, DrawParms &parms);
 	void AddPoly(FTexture *texture, FVector2 *points, int npoints,

@@ -40,7 +40,7 @@
     metalLayer = [CAMetalLayer layer];
     metalLayer.device =  device;
     metalLayer.framebufferOnly = YES; //todo: optimized way
-    metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    metalLayer.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
     metalLayer.wantsExtendedDynamicRangeContent = false;
     metalLayer.drawableSize = CGSizeMake(self.frame.size.width, self.frame.size.height);
     metalLayer.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;

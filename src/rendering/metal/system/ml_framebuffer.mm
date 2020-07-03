@@ -40,22 +40,6 @@ void MetalFrameBuffer::Draw2D()
 {
     if (MLRenderer != nullptr)
     {
-        for (int i = 0; i < 6; i++)
-        {
-            aPosition[i] = {m2DDrawer.mVertices[i].x,m2DDrawer.mVertices[i].y,m2DDrawer.mVertices[i].z, 1};
-            aColor[i] = {(float)m2DDrawer.mVertices[i].color0.b,
-                              (float)m2DDrawer.mVertices[i].color0.g,
-                              (float)m2DDrawer.mVertices[i].color0.r,
-                              (float)m2DDrawer.mVertices[i].color0.a};
-            aTexCoord[i] = {m2DDrawer.mVertices[i].u,m2DDrawer.mVertices[i].v};
-        }
-        
-        //BGRA
-        aColor[0] = aColor[1] = aColor[2] = aColor[3] = aColor[4] = aColor[5] = {0,0,0,255.f};
-        [ml_RenderState.renderCommandEncoder setVertexBytes:&aPosition[0] length:sizeof(vector_float4) * 6 atIndex:0];
-        [ml_RenderState.renderCommandEncoder setVertexBytes:&aTexCoord[0] length:sizeof(vector_float2) * 6 atIndex:1];
-        [ml_RenderState.renderCommandEncoder setVertexBytes:&aColor[0]    length:sizeof(vector_float4) * 6 atIndex:2];
-        
         ::Draw2D(&m2DDrawer, ml_RenderState);
     }
 }
@@ -76,7 +60,8 @@ void MetalFrameBuffer::BeginFrame()
             
             // Color render target
             renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mDrawable.texture;
-            renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
+            renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+            
             //renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
 
             // Depth render target
@@ -88,11 +73,13 @@ void MetalFrameBuffer::BeginFrame()
             renderPassDescriptor.stencilAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
             renderPassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
             renderPassDescriptor.stencilAttachment.clearStencil = 0.f;
+            
+            
         }
         auto fb = GetMetalFrameBuffer();
         
-        renderPassDescriptor.renderTargetWidth = fb->GetClientWidth();
-        renderPassDescriptor.renderTargetHeight = fb->GetClientHeight();
+        renderPassDescriptor.renderTargetWidth = 1440;//fb->GetClientWidth();
+        renderPassDescriptor.renderTargetHeight = 900;//fb->GetClientHeight();
         renderPassDescriptor.defaultRasterSampleCount = 1;
     
         ml_RenderState.CreateRenderState(renderPassDescriptor);

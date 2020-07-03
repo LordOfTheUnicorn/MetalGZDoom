@@ -9,7 +9,7 @@ namespace MetalRenderer
         
         // We need 6 different samplers: 4 for the different clamping modes,
         // one for 2D-textures and one for voxel textures
-        id<MTLSamplerState> mSamplers[7];
+        //id<MTLSamplerState> mSamplers[7];
         
         //void UnbindAll();
         
@@ -17,7 +17,7 @@ namespace MetalRenderer
         void Destroy();
         
     public:
-        
+        id<MTLSamplerState> mSamplers[7];
         MlSamplerManager(id <MTLDevice> device);
         ~MlSamplerManager(){Destroy();};
         

@@ -360,7 +360,7 @@ protected:
 	template<class T>
 	void DrawTextCommon(FFont *font, int normalcolor, double x, double y, const T *string, DrawParms &parms);
 
-	F2DDrawer m2DDrawer;
+	//F2DDrawer m2DDrawer;
 private:
 	int Width = 0;
 	int Height = 0;
@@ -369,6 +369,7 @@ protected:
 
 public:
 	// Hardware render state that needs to be exposed to the API independent part of the renderer. For ease of access this is stored in the base class.
+    F2DDrawer m2DDrawer;
 	int hwcaps = 0;								// Capability flags
 	float glslversion = 0;						// This is here so that the differences between old OpenGL and new OpenGL/Vulkan can be handled by platform independent code.
 	int instack[2] = { 0,0 };					// this is globally maintained state for portal recursion avoidance.

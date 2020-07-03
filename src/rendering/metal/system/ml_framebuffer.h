@@ -77,22 +77,10 @@ public:
     //
     //FTexture *WipeStartScreen() override;
     //FTexture *WipeEndScreen() override;
+    bool IsHWGammaActive() const { return HWGammaActive; }
+    bool HWGammaActive = false;            // Are we using hardware or software gamma?
     
     void SetVSync(bool vsync);
-    
-    typedef struct
-    {
-        vector_float4 aPosition;
-        vector_float2 aTexCoord;
-        vector_float4 aColor;
-    } inVertex;
-    
-    
-    inVertex vert [6];
-  
-    vector_float4 aPosition[6];
-    vector_float2 aTexCoord[6];
-    vector_float4 aColor[6];
 
     
 };

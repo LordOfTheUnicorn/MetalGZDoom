@@ -57,7 +57,7 @@
 #include "metal/renderer/ml_renderer.h"
 #include "metal/system/ml_buffer.h"
 
-
+CVAR(Bool, ml_no_skyclear, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 
 namespace MetalRenderer
 {
@@ -105,8 +105,11 @@ void MlRenderer::DrawScene(HWDrawInfo *di, int drawmode)
     }
 
     //glDepthMask(true);
-    //if (!gl_no_skyclear)
+    if (!ml_no_skyclear)
+    {
         screen->mPortalState->RenderFirstSkyPortal(recursion, di, ml_RenderState);
+        //ml_RenderState.EndFrame();
+    }
 
     di->RenderScene(ml_RenderState);
 
@@ -124,6 +127,7 @@ void MlRenderer::DrawScene(HWDrawInfo *di, int drawmode)
     // Handle all portals after rendering the opaque objects but before
     // doing all translucent stuff
     recursion++;
+    //ml_RenderState.EndFrame();
     screen->mPortalState->EndFrame(di, ml_RenderState);
     recursion--;
     di->RenderTranslucent(ml_RenderState);
@@ -164,7 +168,6 @@ sector_t * MlRenderer::RenderViewpoint (FRenderViewpoint &mainvp, AActor * camer
             ml_RenderState.EnableDrawBuffers(ml_RenderState.GetPassDrawBufferCount());
             ml_RenderState.Apply();
         }
-
 
         auto di = HWDrawInfo::StartDrawInfo(mainvp.ViewLevel, nullptr, mainvp, nullptr);
         auto &vp = di->Viewpoint;

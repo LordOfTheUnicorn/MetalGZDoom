@@ -180,12 +180,15 @@ void HWSkyPortal::DrawContents(HWDrawInfo *di, FRenderState &state)
 
 	di->SetupView(state, 0, 0, 0, !!(mState->MirrorFlag & 1), !!(mState->PlaneMirrorFlag & 1));
 
-	state.SetVertexBuffer(vertexBuffer);
+
+    state.SetVertexBuffer(vertexBuffer);
+    state.SetSkyVertexBuffer(vertexBuffer);
 	if (origin->texture[0] && origin->texture[0]->tex->isSkybox())
 	{
 		RenderBox(di, state, origin->skytexno1, origin->texture[0], origin->x_offset[0], origin->sky2);
 	}
 	else
+        
 	{
 		if (origin->texture[0]==origin->texture[1] && origin->doublesky) origin->doublesky=false;	
 

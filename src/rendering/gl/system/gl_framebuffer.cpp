@@ -453,6 +453,7 @@ void OpenGLFrameBuffer::Draw2D()
 	if (GLRenderer != nullptr)
 	{
 		GLRenderer->mBuffers->BindCurrentFB();
+        int i = 0;
 		::Draw2D(&m2DDrawer, gl_RenderState);
 	}
 }

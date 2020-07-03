@@ -49,8 +49,6 @@ public:
 	IBuffer(const IBuffer &) = delete;
 	IBuffer &operator=(const IBuffer &) = delete;
 	virtual ~IBuffer() = default;
-    
-    F2DDrawer::TwoDVertex *Buffer = nullptr;
 
 	virtual void SetData(size_t size, const void *data, bool staticdata = true) = 0;
 	virtual void SetSubData(size_t offset, size_t size, const void *data) = 0;

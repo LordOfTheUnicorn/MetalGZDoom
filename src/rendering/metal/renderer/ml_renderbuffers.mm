@@ -17,6 +17,19 @@ MlRenderBuffers::MlRenderBuffers()
 
 MlRenderBuffers::~MlRenderBuffers()
 {
+    [mSceneMultisampleTex release];
+    [mSceneDepthStencilTex release];
+    [mSceneFogTex release];
+    [mSceneNormalTex release];
+    [mSceneMultisampleBuf release];
+    [mSceneDepthStencilBuf release];
+    [mSceneFogBuf release];
+    [mSceneNormalBuf release];
+    [mSceneFB release];
+    [mDrawable release];
+    [mSceneDataFB release];
+    [PipelineImage[0] release];
+    [PipelineImage[1] release];
 }
 
 void MlRenderBuffers::BeginFrame(int width, int height, int sceneWidth, int sceneHeight)
@@ -33,7 +46,7 @@ void MlRenderBuffers::CreatePipeline(int width, int height)
         MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
         desc.width = fb->GetClientWidth();
         desc.height = fb->GetClientHeight();
-        desc.pixelFormat = MTLPixelFormatBGRA8Unorm;//MTLPixelFormatRGBA16Float;
+        desc.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;//MTLPixelFormatRGBA16Float;
         desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
         PipelineImage[i] = [device newTextureWithDescriptor:desc];
         
@@ -214,7 +227,7 @@ void MlRenderBuffers::CreateSceneColor(int width, int height)//, VkSampleCountFl
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = width;
     desc.height = height;
-    desc.pixelFormat = MTLPixelFormatRGBA16Float;
+    desc.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
     [SceneColor newTextureWithDescriptor:desc];
     
     [desc release];
@@ -254,8 +267,8 @@ void MlRenderBuffers::Setup(int width, int height, int sceneWidth, int sceneHeig
     mHeight = height;
     mSamples = samples;
     mSceneUsesTextures = needsSceneTextures;
-    mSceneWidth = 1440;//sceneWidth;
-    mSceneHeight = 900;//sceneHeight;
+    mSceneWidth = sceneWidth;
+    mSceneHeight = sceneHeight;
 
 
     if (/*FailedCreate*/0)

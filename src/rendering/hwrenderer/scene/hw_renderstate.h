@@ -7,6 +7,7 @@
 #include "hw_drawlist.h"
 #include "matrix.h"
 #include "hwrenderer/textures/hw_material.h"
+#include "hwrenderer/scene/hw_skydome.h"
 
 struct FColormap;
 class IVertexBuffer;
@@ -208,6 +209,7 @@ protected:
 	FDepthBiasState mBias;
 
 	IVertexBuffer *mVertexBuffer;
+    FSkyVertexBuffer *skyVertexBuffer;
 	int mVertexOffsets[2];	// one per binding point
 	IIndexBuffer *mIndexBuffer;
 
@@ -557,6 +559,11 @@ public:
 		SetVertexBuffer(ptrs.first, 0, 0);
 		SetIndexBuffer(ptrs.second);
 	}
+    
+    void SetSkyVertexBuffer(FSkyVertexBuffer *val)
+    {
+        skyVertexBuffer = val;
+    }
 
 	void SetInterpolationFactor(float fac)
 	{

@@ -61,8 +61,6 @@ class MlRenderState : public FRenderState
     bool stAlphaTest;
     bool stSplitEnabled;
     int stBlendEquation;
-
-    
     MTLRenderPassDescriptor* DefRenderPassDescriptor;
     //id<MTLRenderPipelineState>
 
@@ -95,10 +93,8 @@ public:
     id <MTLCommandQueue> commandQueue;
     id <MTLCommandBuffer> commandBuffer;
     id <MTLRenderCommandEncoder> renderCommandEncoder;
-    
     void CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor);
     void setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t offset = 0);
-    //MTKView* m_view;
     
     MlRenderState()
     {
@@ -130,7 +126,7 @@ public:
     void Apply();
     void ApplyBuffers();
     void ApplyBlendMode();
-
+    
     void ResetVertexBuffer()
     {
         // forces rebinding with the next 'apply' call.
@@ -174,7 +170,6 @@ public:
     void EnableDepthTest(bool on) override;
     void EnableMultisampling(bool on) override;
     void EnableLineSmooth(bool on) override;
-
 
 };
 

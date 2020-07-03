@@ -403,6 +403,7 @@ void FGLRenderState::DrawIndexed(int dt, int index, int count, bool apply)
 		Apply();
 	}
 	drawcalls.Clock();
+    GLIndexBuffer* dummy = static_cast<GLIndexBuffer*>(mIndexBuffer);
 	glDrawElements(dt2gl[dt], count, GL_UNSIGNED_INT, (void*)(intptr_t)(index * sizeof(uint32_t)));
 	drawcalls.Unclock();
 }

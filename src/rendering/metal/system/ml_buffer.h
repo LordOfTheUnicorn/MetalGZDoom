@@ -13,6 +13,14 @@
 
 namespace MetalRenderer
 {
+static struct MLVertexBufferAttribute
+{
+    int bindingpoint;
+    int format;
+    int size;
+    int offset;
+};
+
 class MlBuffer : virtual public IBuffer
 {
 public:
@@ -36,12 +44,8 @@ public:
     
     MTLResourceOptions option;
 
-    //VkBufferUsageFlags mBufferType = 0;
-    //std::unique_ptr<VulkanBuffer> mBuffer;
-    //std::unique_ptr<VulkanBuffer> mStaging;
     bool mPersistent = false;
-    //bool map = false;
-    //TArray<uint8_t> mStaticUpload;
+
     void*                 mBuffer;
 private:
     //void*                 mBuffer;
@@ -51,32 +55,16 @@ private:
 
 class MlVertexBuffer : public IVertexBuffer, public MlBuffer
 {
-    struct MLVertexBufferAttribute
-    {
-        int bindingpoint;
-        int format;
-        int size;
-        int offset;
-    };
-    
     int mNumBindingPoints;
+public:
     MLVertexBufferAttribute mAttributeInfo[VATTR_MAX] = {};
     size_t mStride = 0;
-public:
-
-    //int i;
-    vector_float4 aPosition[6];
-    vector_float2 aTexCoord[6];
-    vector_float4 aColor[6];
-    
     MlVertexBuffer();
-    
-    
-    
     void SetFormat(int numBindingPoints, int numAttributes, size_t stride, const FVertexBufferAttribute *attrs) override;
-    void Bind(int *offsets, id<MTLRenderCommandEncoder> renderCommandEncoder);
+    void Bind(int *offsets);
 
     int VertexFormat = -1;
+    int sizeBuffer;
 };
 
 class MlIndexBuffer : public IIndexBuffer, public MlBuffer
@@ -95,7 +83,24 @@ public:
     void BindRange(FRenderState *state, size_t start, size_t length) override;
 
     int bindingpoint;
-    matrix_float4x4 mat;
-    float ASS = true;
 };
+
+static size_t getStrideForAttr(MLVertexBufferAttribute attr)
+{
+    switch (attr.format)
+    {
+        case MTLVertexFormatFloat:
+            return sizeof(float) * attr.size;
+            
+        case MTLVertexFormatUInt:
+            return sizeof(uint32_t) * attr.size;
+            
+        case MTLVertexFormatUInt1010102Normalized:
+            return 32 * attr.size;
+    }
+    
+    assert(true);
+    return 0;
+}
+
 }

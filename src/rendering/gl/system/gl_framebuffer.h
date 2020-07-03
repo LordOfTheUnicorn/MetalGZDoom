@@ -2,6 +2,7 @@
 #define __GL_FRAMEBUFFER
 
 #include "gl_sysfb.h"
+#include <simd/simd.h>
 
 #include <memory>
 

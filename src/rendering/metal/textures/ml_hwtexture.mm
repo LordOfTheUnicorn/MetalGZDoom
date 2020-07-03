@@ -95,12 +95,12 @@ uint8_t* MlHardwareTexture::MapBuffer()
 
 void MlHardwareTexture::ResetAll()
 {
-    
+    [mTex release];
 }
 
 void MlHardwareTexture::Reset(size_t id)
 {
-    
+    [mTex release];
 }
 
 unsigned int MlHardwareTexture::Bind(int texunit, bool needmipmap)
@@ -169,7 +169,7 @@ id<MTLTexture> MlHardwareTexture::CreateTexture(unsigned char * buffer, int w, i
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = rw;
     desc.height = rh;
-    desc.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    desc.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
     desc.storageMode = MTLStorageModeManaged;
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
     desc.textureType = MTLTextureType2D;
@@ -244,10 +244,11 @@ bool MlHardwareTexture::BindOrCreate(FTexture *tex, int texunit, int clampmode, 
     FImageSource * t = tex->GetImage();
     
     
-   // MLRenderer->mSamplerManager->Bind(texunit, clampmode, 255);
+    //MLRenderer->mSamplerManager->Bind(texunit, clampmode, 255);
     if (encoder)
     {
-        [encoder setFragmentTexture:mTex atIndex:8];
+        //[encoder setFragmentSamplerState:MLRenderer->mSamplerManager->mSamplers[clampmode] atIndex:9];
+        [encoder setFragmentTexture:mTex atIndex:1];
     }
     return true;
 }
