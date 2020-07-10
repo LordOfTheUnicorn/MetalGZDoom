@@ -260,11 +260,11 @@ bool MlRenderState::ApplyShader()
         renderPipelineDesc.vertexDescriptor = vertexDesc;
         renderPipelineDesc.sampleCount = 1;
         
-        depthStateDesc.depthCompareFunction = depthCompareFunc;
-        depthStateDesc.depthWriteEnabled = YES;
-        depthStateDesc.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
-        depthStateDesc.backFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
-        depthState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
+        //depthStateDesc.depthCompareFunction = depthCompareFunc;
+        //depthStateDesc.depthWriteEnabled = YES;
+        //depthStateDesc.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
+        //depthStateDesc.backFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
+        //depthState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
             
         renderPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
         renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
@@ -288,7 +288,7 @@ bool MlRenderState::ApplyShader()
         }
     }
     [ml_RenderState.renderCommandEncoder setRenderPipelineState:pipelineState];
-    [ml_RenderState.renderCommandEncoder setDepthStencilState:  depthState];
+    //[ml_RenderState.renderCommandEncoder setDepthStencilState:  depthState];
     
 
     int fogset = 0;
@@ -695,9 +695,9 @@ void MlRenderState::SetDepthFunc(int func)
     depthCompareFunc = df2ml[func];
     depthStateDesc.depthCompareFunction = depthCompareFunc;
     depthStateDesc.depthWriteEnabled = YES;
-    depthStateDesc.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
-    depthStateDesc.backFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
     depthState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
+    //[ml_RenderState.renderCommandEncoder setDepthClipMode: MTLDepthClipModeClamp];
+    
 }
 
 void MlRenderState::SetDepthRange(float min, float max)
@@ -712,16 +712,27 @@ void MlRenderState::SetColorMask(bool r, bool g, bool b, bool a)
 
 void MlRenderState::SetStencil(int offs, int op, int flags = -1)
 {
-    //MTLCompareFunctionNever = 0,
-    //MTLCompareFunctionLess = 1,
-    //MTLCompareFunctionEqual = 2,
-    //MTLCompareFunctionLessEqual = 3,
-    //MTLCompareFunctionGreater = 4,
-    //MTLCompareFunctionNotEqual = 5,
-    //MTLCompareFunctionGreaterEqual = 6,
-    //MTLCompareFunctionAlways = 7,
-    //static int op2gl[] = { GL_KEEP, GL_INCR, GL_DECR };
-
+    // MTLStencilOperationKeep = 0,                                 //MTLCompareFunctionNever = 0,
+    // MTLStencilOperationZero = 1,                                 //MTLCompareFunctionLess = 1,
+    // MTLStencilOperationReplace = 2,                              //MTLCompareFunctionEqual = 2,
+    // MTLStencilOperationIncrementClamp = 3,                       //MTLCompareFunctionLessEqual = 3,
+    // MTLStencilOperationDecrementClamp = 4,                       //MTLCompareFunctionGreater = 4,
+    // MTLStencilOperationInvert = 5,                               //MTLCompareFunctionNotEqual = 5,
+    // MTLStencilOperationIncrementWrap = 6,                        //MTLCompareFunctionGreaterEqual = 6,
+    // MTLStencilOperationDecrementWrap = 7,                        //MTLCompareFunctionAlways = 7,
+    static MTLStencilOperation op2ml[] = { MTLStencilOperationKeep, MTLStencilOperationIncrementClamp, MTLStencilOperationDecrementClamp };
+    
+    depthStateDesc.frontFaceStencil.stencilCompareFunction    = MTLCompareFunctionEqual;
+    depthStateDesc.frontFaceStencil.stencilFailureOperation   = MTLStencilOperationKeep;
+    depthStateDesc.frontFaceStencil.depthStencilPassOperation = op2ml[op];
+    //depthStateDesc.frontFaceStencil.readMask
+    //depthStateDesc.frontFaceStencil.writeMask
+    depthStateDesc.backFaceStencil.stencilCompareFunction    = MTLCompareFunctionEqual;
+    depthStateDesc.backFaceStencil.stencilFailureOperation   = MTLStencilOperationKeep;
+    depthStateDesc.backFaceStencil.depthStencilPassOperation = op2ml[op];
+    
+    depthStateDesc.depthCompareFunction = MTLCompareFunctionEqual;
+    [ml_RenderState.renderCommandEncoder setStencilReferenceValue:screen->stencilValue + offs ];
     //glStencilFunc(GL_EQUAL, screen->stencilValue + offs, ~0);        // draw sky into stencil
     //glStencilOp(GL_KEEP, GL_KEEP, op2gl[op]);        // this stage doesn't modify the stencil
 
