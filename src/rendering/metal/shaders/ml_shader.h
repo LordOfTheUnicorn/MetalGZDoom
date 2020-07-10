@@ -142,8 +142,6 @@ class MlShader
     bool currentModelMatrixState = true;
 
 public:
-    id<MTLRenderPipelineState> pipelineState;
-    id<MTLDepthStencilState> depthState;
     
     MlShader(const char *name)
         : mName(name)
@@ -152,13 +150,9 @@ public:
     }
     
     MlShader() = default;
-
-
     virtual ~MlShader(){};
 
     bool Load(const char * name, const char * vert_prog_lump, const char * fragprog, const char * fragprog2, const char * light_fragprog, const char *defines);
-    bool Load(const MLVertexBufferAttribute *attr, size_t stride);
-
     bool Bind();
     unsigned int GetHandle() const { return hShader; }
 };

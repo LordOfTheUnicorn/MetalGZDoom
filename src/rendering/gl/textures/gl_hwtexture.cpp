@@ -101,6 +101,8 @@ unsigned int FHardwareTexture::CreateTexture(unsigned char * buffer, int w, int 
 	if (firstCall)
 	{
 		glGenTextures(1, &glTexID);
+        printf("CreateTexture - FIRST_CALL\n");
+        FGLDebug::LabelObject(GL_TEXTURE, glTexID, name);
 	}
 
 	int textureBinding = UINT_MAX;
@@ -108,14 +110,17 @@ unsigned int FHardwareTexture::CreateTexture(unsigned char * buffer, int w, int 
 	if (texunit > 0) glActiveTexture(GL_TEXTURE0+texunit);
 	if (texunit >= 0) lastbound[texunit] = glTexID;
 	glBindTexture(GL_TEXTURE_2D, glTexID);
-
+    
+    printf("glTexID = %i", glTexID);
 	FGLDebug::LabelObject(GL_TEXTURE, glTexID, name);
 
 	rw = GetTexDimension(w);
 	rh = GetTexDimension(h);
 	if (glBufferID > 0)
 	{
-		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+        printf("CreateTexture - glBufferID > 0");
+        FGLDebug::LabelObject(GL_TEXTURE, glTexID, name);
+        glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 		buffer = nullptr;
 	}
 	else if (!buffer)

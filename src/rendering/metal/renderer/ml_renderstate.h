@@ -52,6 +52,7 @@ class MlRenderState : public FRenderState
 
     float mGlossiness, mSpecularLevel;
     float mShaderTimer;
+    MLVertexBufferAttribute prevAttributeInfo[VATTR_MAX] = {};
 
     int mEffectState;
     int mTempTM = TM_NORMAL;
@@ -85,31 +86,62 @@ class MlRenderState : public FRenderState
     IIndexBuffer *mCurrentIndexBuffer;
     MlRenderBuffers *buffers;
     MTLViewport m_Viewport;
+    id <MTLLibrary> defaultLibrary;
+    id <MTLFunction> VShader;
+    id <MTLFunction> FShader;
+    MTLVertexDescriptor *vertexDesc;
+    id<MTLRenderPipelineState> pipelineState;
+    id<MTLDepthStencilState> depthState;
+    MTLRenderPipelineDescriptor * renderPipelineDesc;
+    MTLDepthStencilDescriptor *depthStateDesc;
 
 
 public:
     MlShader *activeShader;
-    int val =0;
+    int val = 0;
     id <MTLCommandQueue> commandQueue;
     id <MTLCommandBuffer> commandBuffer;
     id <MTLRenderCommandEncoder> renderCommandEncoder;
+    id<MTLBuffer> mtl_vertexBuffer;
     void CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor);
     void setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t offset = 0);
+    void CopyVertexBufferAttribute(const MLVertexBufferAttribute* attr);
+    bool VertexBufferAttributeWasChange(const MLVertexBufferAttribute* attr);
+    void AllocDesc()
+    {
+        if (vertexDesc == nil)
+            vertexDesc = [[MTLVertexDescriptor alloc] init];
+        if (depthStateDesc == nil)
+            depthStateDesc = [[MTLDepthStencilDescriptor alloc] init];
+        if (renderPipelineDesc == nil)
+            renderPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
+    }
     
     MlRenderState()
     {
         Reset();
-        //activeShader = new MlShader();
+        NSError* error = nil;
+        defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/metalShaders/doomMetallib.metallib" error:&error];
+        VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
+        FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
+        AllocDesc();
         commandQueue = [device newCommandQueueWithMaxCommandBufferCount:512];
+        if(error)
+        {
+            NSLog(@"Failed to created pipeline state, error %@", error);
+            assert(true);
+        }
     }
     
     MlRenderState(MlRenderBuffers *buffers) : buffers(buffers)
     {
+        //mtl_vertexBuffer = [device newBufferWithLength:40000000 options:MTLResourceStorageModeShared];
         activeShader = new MlShader();
     }
     
     ~MlRenderState()
     {
+        //[mtl_vertexBuffer release];
         delete activeShader;
     }
     
@@ -154,6 +186,8 @@ public:
     void ClearScreen() override;
     void Draw(int dt, int index, int count, bool apply = true) override;
     void DrawIndexed(int dt, int index, int count, bool apply = true) override;
+    void CreateFanToTrisIndexBuffer(int index, int& count);
+    id<MTLBuffer> fanIndexBuffer;
 
     bool SetDepthClamp(bool on) override;
     void SetDepthMask(bool on) override;

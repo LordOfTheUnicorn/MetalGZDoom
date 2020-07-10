@@ -60,6 +60,7 @@ public:
     MLVertexBufferAttribute mAttributeInfo[VATTR_MAX] = {};
     size_t mStride = 0;
     MlVertexBuffer();
+    ~MlVertexBuffer();
     void SetFormat(int numBindingPoints, int numAttributes, size_t stride, const FVertexBufferAttribute *attrs) override;
     void Bind(int *offsets);
 

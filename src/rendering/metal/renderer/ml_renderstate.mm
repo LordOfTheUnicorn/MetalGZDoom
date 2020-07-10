@@ -218,10 +218,78 @@ bool MlRenderState::ApplyShader()
     activeShader = new MlShader();
     MlVertexBuffer* vertexBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
     
-    if (vertexBuffer != nullptr)
-        activeShader->Load(vertexBuffer->mAttributeInfo, vertexBuffer->mStride);
-    else
-        activeShader->Load(nullptr, 24);
+    if (vertexBuffer == nullptr || VertexBufferAttributeWasChange(vertexBuffer->mAttributeInfo))
+    {
+        bool isVertexBufferNull = vertexBuffer == nullptr;
+        if (!isVertexBufferNull)
+            CopyVertexBufferAttribute(vertexBuffer->mAttributeInfo);
+        
+        size_t stride = !isVertexBufferNull ? vertexBuffer->mStride : 24;
+        const MLVertexBufferAttribute *attr = !isVertexBufferNull ? vertexBuffer->mAttributeInfo : nullptr;
+        NSError* error = nil;
+            
+        //##########################ATTRIBUTE 0#########################
+        vertexDesc.attributes[0].format = MTLVertexFormatFloat3;
+        vertexDesc.attributes[0].offset = 0;
+        vertexDesc.attributes[0].bufferIndex = 0;
+        vertexDesc.layouts[0].stride = stride;
+        vertexDesc.layouts[0].stepRate = 1;
+        vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+        //##########################ATTRIBUTE 1#########################
+        vertexDesc.attributes[1].format = MTLVertexFormatFloat2;
+        vertexDesc.attributes[1].offset = attr == nullptr || attr[1].size > 0 ? 12 : 0;
+        vertexDesc.attributes[1].bufferIndex = 0;
+        vertexDesc.layouts[1].stride = 0;
+        vertexDesc.layouts[1].stepRate = attr == nullptr || attr[1].size > 0 ? 1 : 0;;
+        vertexDesc.layouts[1].stepFunction = MTLVertexStepFunctionPerVertex;
+        //##########################ATTRIBUTE 2#########################
+        vertexDesc.attributes[2].format = MTLVertexFormatFloat;
+        vertexDesc.attributes[2].offset = attr == nullptr || attr[2].size > 0 ? 20 : 0;
+        vertexDesc.attributes[2].bufferIndex = 0;
+        vertexDesc.layouts[2].stride = 0;
+        vertexDesc.layouts[2].stepRate  = attr == nullptr || attr[2].size > 0 ? 1 : 0;
+        vertexDesc.layouts[2].stepFunction = MTLVertexStepFunctionPerVertex;
+        vertexDesc.layouts[3].stepFunction = MTLVertexStepFunctionConstant;
+        vertexDesc.layouts[4].stepFunction = MTLVertexStepFunctionConstant;
+        vertexDesc.layouts[5].stepFunction = MTLVertexStepFunctionConstant;
+        //##############################################################
+            
+        renderPipelineDesc.label = @"VertexMain";
+        renderPipelineDesc.vertexFunction = VShader;
+        renderPipelineDesc.fragmentFunction = FShader;
+        renderPipelineDesc.vertexDescriptor = vertexDesc;
+        renderPipelineDesc.sampleCount = 1;
+        
+        depthStateDesc.depthCompareFunction = MTLCompareFunctionAlways;
+        depthStateDesc.depthWriteEnabled = YES;
+        depthStateDesc.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
+        depthStateDesc.backFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
+        depthState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
+            
+        renderPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+        renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+        renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+
+        renderPipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
+        renderPipelineDesc.colorAttachments[0].alphaBlendOperation         = MTLBlendOperationAdd;
+        renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactorOne;
+        renderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactorOne;
+        renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
+        renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+
+        renderPipelineDesc.colorAttachments[0].blendingEnabled = YES;
+        
+        pipelineState = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc  error:&error];
+            
+        if(!pipelineState || error)
+        {
+            NSLog(@"Failed to created pipeline state, error %@", error);
+            assert(pipelineState);
+        }
+    }
+    [ml_RenderState.renderCommandEncoder setRenderPipelineState:pipelineState];
+    [ml_RenderState.renderCommandEncoder setDepthStencilState:  depthState];
+    
 
     int fogset = 0;
 
@@ -240,8 +308,6 @@ bool MlRenderState::ApplyShader()
             fogset = -gl_fogmode;
         }
     }
-
-    id <MTLBuffer> buff = [device newBufferWithBytes:&mStreamData.uVertexColor length:sizeof(FVector4) options:MTLResourceStorageModeShared];
     
     activeShader->muDesaturation.Set(mStreamData.uDesaturationFactor);
     activeShader->muFogEnabled.Set(fogset);
@@ -308,39 +374,15 @@ bool MlRenderState::ApplyShader()
         activeShader->normalmodelmatrix.matrixToMetal(identityMatrix);
     }
     
-    //float2 uClipSplit;
-    //float4 uSplitTopPlane;
-    //float  uInterpolationFactor;
-    //float4 uGlowTopColor;
-    //float4 uGlowTopPlane;
-    //float4 uGlowBottomPlane;
-    //float4 uObjectColor2;
-    //float4 uSplitBottomPlane;
-    //float4 uGradientBottomPlane;
-    //float4 uGlowBottomColor;
-    //float4 uGradientTopPlane;
-    
     MlDataBuffer* dataBuffer = (MlDataBuffer*)screen->mViewpoints;
     
-    //float4x4 ModelMatrix;
-    //float4x4 TextureMatrix;
-    //float4x4 NormalModelMatrix;
-    
-    PerView data[258];
-    data[0].ModelMatrix       = simd_transpose(activeShader->modelmatrix.mat);
-    data[0].TextureMatrix     = /*simd_transpose*/(activeShader->texturematrix.mat);
-    data[0].NormalModelMatrix = simd_transpose(activeShader->normalmodelmatrix.mat);
+    PerView data;
+    data.ModelMatrix       = simd_transpose(activeShader->modelmatrix.mat);
+    data.TextureMatrix     = /*simd_transpose*/(activeShader->texturematrix.mat);
+    data.NormalModelMatrix = simd_transpose(activeShader->normalmodelmatrix.mat);
     auto fb = GetMetalFrameBuffer();
     
-    //data[6] = data[1] = data[2] = data[3] = data[4] = data[5] = data[0];
-    
-    for (int i = 1; i < 258; i++)
-    {
-        data[i] = data[0];
-    }
-    
-    id <MTLBuffer> buff2 = [device newBufferWithBytes:&data length:sizeof(data) options:MTLResourceStorageModeShared];
-    [ml_RenderState.renderCommandEncoder setVertexBuffer:buff2 offset:0 atIndex:3];
+    [ml_RenderState.renderCommandEncoder setVertexBytes:&data length:sizeof(data) atIndex:3];
     
     int index = mLightIndex;
     // Mess alert for crappy AncientGL!
@@ -355,72 +397,40 @@ bool MlRenderState::ApplyShader()
             //static_cast<GLDataBuffer*>(screen->mLights->GetBuffer())->BindRange(nullptr, start, size);
         }
     }
-    Uniforms uniforms [258];
-    uniforms[0].timer = activeShader->muTimer.val;
-    uniforms[0].uAddColor = {activeShader->muAddColor.mBuffer.r,activeShader->muAddColor.mBuffer.g,activeShader->muAddColor.mBuffer.b,activeShader->muAddColor.mBuffer.a};
-    uniforms[0].uDesaturationFactor = mStreamData.uDesaturationFactor;
-    uniforms[0].uDynLightColor = activeShader->muDynLightColor.val;
-    uniforms[0].uFogColor = {activeShader->muFogColor.mBuffer.r,activeShader->muFogColor.mBuffer.g,activeShader->muFogColor.mBuffer.b,activeShader->muFogColor.mBuffer.a};
-    uniforms[0].uFogEnabled = activeShader->muFogEnabled.val;
-    uniforms[0].uGlowBottomColor = activeShader->muGlowBottomColor.val;
-    uniforms[0].uGlowTopColor = activeShader->muGlowTopColor.val;
-    uniforms[0].uObjectColor = {activeShader->muObjectColor.mBuffer.r,activeShader->muObjectColor.mBuffer.g,activeShader->muObjectColor.mBuffer.b,activeShader->muObjectColor.mBuffer.a};
-    uniforms[0].uObjectColor2 = {activeShader->muObjectColor2.mBuffer.r,activeShader->muObjectColor2.mBuffer.g,activeShader->muObjectColor2.mBuffer.b,activeShader->muObjectColor2.mBuffer.a};
-    uniforms[0].uTextureMode = activeShader->muTextureMode.val;
+    Uniforms uniforms;
+    uniforms.timer = activeShader->muTimer.val;
+    uniforms.uAddColor = {activeShader->muAddColor.mBuffer.r,activeShader->muAddColor.mBuffer.g,activeShader->muAddColor.mBuffer.b,activeShader->muAddColor.mBuffer.a};
+    uniforms.uDesaturationFactor = mStreamData.uDesaturationFactor;
+    uniforms.uDynLightColor = activeShader->muDynLightColor.val;
+    uniforms.uFogColor = {activeShader->muFogColor.mBuffer.r,activeShader->muFogColor.mBuffer.g,activeShader->muFogColor.mBuffer.b,activeShader->muFogColor.mBuffer.a};
+    uniforms.uFogEnabled = activeShader->muFogEnabled.val;
+    uniforms.uGlowBottomColor = activeShader->muGlowBottomColor.val;
+    uniforms.uGlowTopColor = activeShader->muGlowTopColor.val;
+    uniforms.uObjectColor = {activeShader->muObjectColor.mBuffer.r,activeShader->muObjectColor.mBuffer.g,activeShader->muObjectColor.mBuffer.b,activeShader->muObjectColor.mBuffer.a};
+    uniforms.uObjectColor2 = {activeShader->muObjectColor2.mBuffer.r,activeShader->muObjectColor2.mBuffer.g,activeShader->muObjectColor2.mBuffer.b,activeShader->muObjectColor2.mBuffer.a};
+    uniforms.uTextureMode = activeShader->muTextureMode.val;
     
-    for (int i = 1; i < 258; i++)
-    {
-        uniforms[i] = uniforms[0];
-    }
+    [ml_RenderState.renderCommandEncoder setFragmentBytes:&uniforms length:sizeof(Uniforms) atIndex:2];
     
-    id<MTLBuffer> uniformsData = [device newBufferWithBytes:&uniforms length:sizeof(Uniforms) options:MTLResourceStorageModeShared];
-    [ml_RenderState.renderCommandEncoder setFragmentBuffer:uniformsData offset:0 atIndex:2];
     
-    mtlHWViewpointUniforms hw[258];
-    id <MTLBuffer> buff3;
     if(MLRenderer->mHWViewpointUniforms != nullptr)
-    {
-        hw[0] = *MLRenderer->mHWViewpointUniforms;
-        for (int i = 1; i < 258; i++)
-        {
-            hw[i] = hw[0];
-        }
-        buff3 = [device newBufferWithBytes:&hw length:sizeof(hw) options:MTLResourceStorageModeShared];
-        [ml_RenderState.renderCommandEncoder setVertexBuffer:buff3 offset:0 atIndex:4];
-        //[ml_RenderState.renderCommandEncoder setVertexBytes:&hw[0] length:sizeof(hw) atIndex:4];
-    }
-    
-    VSUniforms VSUniform [200];
-    VSUniform[0].uClipSplit = activeShader->muClipSplit.val;
-    VSUniform[0].uSplitTopPlane = activeShader->muSplitTopPlane.val;
-    VSUniform[0].uInterpolationFactor = activeShader->muInterpolationFactor.val;
-    VSUniform[0].uGlowTopColor = activeShader->muGlowTopColor.val;
-    VSUniform[0].uGlowTopPlane = activeShader->muGlowTopPlane.val;
-    VSUniform[0].uGlowBottomPlane = activeShader->muGlowBottomPlane.val;
-    VSUniform[0].uObjectColor2 = {activeShader->muObjectColor2.mBuffer.r,activeShader->muObjectColor2.mBuffer.g,activeShader->muObjectColor2.mBuffer.b,activeShader->muObjectColor2.mBuffer.a};
-    VSUniform[0].uSplitBottomPlane = activeShader->muSplitBottomPlane.val;
-    VSUniform[0].uGradientBottomPlane = activeShader->muGradientBottomPlane.val;
-    VSUniform[0].uGlowBottomColor = activeShader->muGlowBottomColor.val;
-    VSUniform[0].uGradientTopPlane = activeShader->muGradientTopPlane.val;
-    
-    for (int i = 1; i < 200; i++)
-    {
-        VSUniform[i] = VSUniform[0];
-    }
+        [ml_RenderState.renderCommandEncoder setVertexBytes:MLRenderer->mHWViewpointUniforms length:sizeof(mtlHWViewpointUniforms) atIndex:4];
     
     
-    id<MTLBuffer> VSUniformsData = [device newBufferWithBytes:&VSUniform length:sizeof(VSUniform) options:MTLResourceStorageModeShared];
-    [ml_RenderState.renderCommandEncoder setVertexBuffer:VSUniformsData offset:0 atIndex:5];
-    //[ml_RenderState.renderCommandEncoder setVertexBytes:&VSUniform[0] length:sizeof(VSUniform) atIndex:5];
+    VSUniforms VSUniform;
+    VSUniform.uClipSplit = activeShader->muClipSplit.val;
+    VSUniform.uSplitTopPlane = activeShader->muSplitTopPlane.val;
+    VSUniform.uInterpolationFactor = activeShader->muInterpolationFactor.val;
+    VSUniform.uGlowTopColor = activeShader->muGlowTopColor.val;
+    VSUniform.uGlowTopPlane = activeShader->muGlowTopPlane.val;
+    VSUniform.uGlowBottomPlane = activeShader->muGlowBottomPlane.val;
+    VSUniform.uObjectColor2 = {activeShader->muObjectColor2.mBuffer.r,activeShader->muObjectColor2.mBuffer.g,activeShader->muObjectColor2.mBuffer.b,activeShader->muObjectColor2.mBuffer.a};
+    VSUniform.uSplitBottomPlane = activeShader->muSplitBottomPlane.val;
+    VSUniform.uGradientBottomPlane = activeShader->muGradientBottomPlane.val;
+    VSUniform.uGlowBottomColor = activeShader->muGlowBottomColor.val;
+    VSUniform.uGradientTopPlane = activeShader->muGradientTopPlane.val;
     
-    [ml_RenderState.renderCommandEncoder setRenderPipelineState:activeShader->pipelineState];
-    [ml_RenderState.renderCommandEncoder setDepthStencilState:activeShader->depthState];
-    
-    [buff release];
-    [buff2 release];
-    [buff3 release];
-    [VSUniformsData release];
-    [uniformsData release];
+    [ml_RenderState.renderCommandEncoder setVertexBytes:&VSUniform length:sizeof(VSUniform) atIndex:5];
     
     activeShader->muLightIndex.Set(index);
     return true;
@@ -434,7 +444,17 @@ void MlRenderState::ApplyBuffers()
     {
         assert(mVertexBuffer != nullptr);
         MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
-        mtlBuffer->Bind(mVertexOffsets);
+        //mtlBuffer->Bind(mVertexOffsets);
+        if (mtl_vertexBuffer.length < mtlBuffer->Size())
+        {
+            [mtl_vertexBuffer release];
+            mtl_vertexBuffer = [device newBufferWithBytes:mtlBuffer->mBuffer length:mtlBuffer->Size() options:MTLResourceStorageModeShared];
+        }
+        else
+        {
+            float* val = (float*)mtl_vertexBuffer.contents;
+            memcpy(val, (float*)mtlBuffer->mBuffer, mtlBuffer->Size());
+        }
         mCurrentVertexBuffer = mVertexBuffer;
         mCurrentVertexOffsets[0] = mVertexOffsets[0];
         mCurrentVertexOffsets[1] = mVertexOffsets[1];
@@ -459,23 +479,34 @@ void MlRenderState::Apply()
 
 void MlRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor)
 {
-    ml_RenderState.commandBuffer = [ml_RenderState.commandQueue commandBuffer];
-    ml_RenderState.renderCommandEncoder = [ml_RenderState.commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+    commandBuffer = [commandQueue commandBuffer];
+    ml_RenderState.renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
     ml_RenderState.renderCommandEncoder.label = @"ml_RenderState.renderCommandEncoder";
     [ml_RenderState.renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
     [ml_RenderState.renderCommandEncoder setCullMode:MTLCullModeNone];
     [ml_RenderState.renderCommandEncoder setViewport:(MTLViewport){0.0, 0.0, (double)GetMetalFrameBuffer()->GetClientWidth(), (double)GetMetalFrameBuffer()->GetClientHeight(), 0.0, 1.0 }];
-    
+    //if (pipelineState)
+    //    [ml_RenderState.renderCommandEncoder setRenderPipelineState:pipelineState];
+    //if (depthState)
+    //    [ml_RenderState.renderCommandEncoder setDepthStencilState:  depthState];
     if (activeShader == nullptr)
     {
         activeShader = new MlShader();
-        //activeShader->Load(nullptr, 0);
     }
-    
-    
-    //[ml_RenderState.renderCommandEncoder setRenderPipelineState:activeShader->pipelineState];
-    //[ml_RenderState.renderCommandEncoder setDepthStencilState:activeShader->depthState];
+}
 
+void MlRenderState::CopyVertexBufferAttribute(const MLVertexBufferAttribute *attr)
+{
+    memcpy(prevAttributeInfo, attr, sizeof(MLVertexBufferAttribute)*6);
+}
+
+bool MlRenderState::VertexBufferAttributeWasChange(const MLVertexBufferAttribute *attr)
+{
+    for (int i = 0; i < 6; i++)
+    {
+        if (prevAttributeInfo[i].size != attr[i].size)
+            return true;
+    }
 }
 
 void MlRenderState::setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t offset /*= 0*/)
@@ -486,11 +517,11 @@ void MlRenderState::setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t o
 void MlRenderState::EndFrame()
 {
     if (MLRenderer->mScreenBuffers->mDrawable)
-            [ml_RenderState.commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
+            [commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
     
     [ml_RenderState.renderCommandEncoder endEncoding];
-    [ml_RenderState.commandBuffer commit];
-            
+    [commandBuffer commit];
+//    [MLRenderer->mScreenBuffers->mDrawable release];
 }
 
 //===========================================================================
@@ -594,7 +625,7 @@ void MlRenderState::ApplyBlendMode()
 //
 //==========================================================================
 
-static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine, MTLPrimitiveTypeTriangle, MTLPrimitiveTypeTriangleStrip, MTLPrimitiveTypeTriangleStrip };
+static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine, MTLPrimitiveTypeTriangle, MTLPrimitiveTypeTriangle, MTLPrimitiveTypeLineStrip };
 
 void MlRenderState::Draw(int dt, int index, int count, bool apply)
 {
@@ -605,14 +636,44 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
     
     drawcalls.Clock();
     
-    MlVertexBuffer* VertexBuffer   = static_cast<MlVertexBuffer*>(mVertexBuffer);
-    id<MTLBuffer>   vertexBuffer   = [device newBufferWithBytes:(float*)VertexBuffer->mBuffer length:VertexBuffer->Size() options:MTLResourceStorageModeShared];
-    [ml_RenderState.renderCommandEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
+    [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:0 atIndex:0];
     
-    [ml_RenderState.renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:0 vertexCount:count];
+    if (dt == 3)
+    {
+        CreateFanToTrisIndexBuffer(index, count);
+        [ml_RenderState.renderCommandEncoder drawIndexedPrimitives:dt2ml[dt] indexCount:count indexType:MTLIndexTypeUInt32 indexBuffer:fanIndexBuffer indexBufferOffset:0];
+        //[fanIndexBuffer release];
+    }
+    else
+    {
+        [ml_RenderState.renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:0 vertexCount:count];
+    }
+    
     [ml_RenderState.renderCommandEncoder popDebugGroup];
     
     drawcalls.Unclock();
+}
+
+void MlRenderState::CreateFanToTrisIndexBuffer(int index, int& count)
+{
+    TArray<uint32_t> data;
+    for (int i = index + 2; i < (index + count); i+=2)
+    {
+        data.Push(index);
+        data.Push(i - 1);
+        data.Push(i);
+    }
+    count = data.Size();
+    if (fanIndexBuffer.length == 0)
+        fanIndexBuffer = [device newBufferWithBytes:data.Data() length:sizeof(uint32_t) * data.Size() options:MTLResourceStorageModeShared];
+    else
+    {
+        uint32_t* val =(uint32_t*) fanIndexBuffer.contents;
+        memcpy(val, (uint32_t*)data.Data(), sizeof(uint32_t) * data.Size());
+    }
+    
+    //FanToTrisIndexBuffer.reset(CreateIndexBuffer());
+    //FanToTrisIndexBuffer->SetData(sizeof(uint32_t) * data.Size(), data.Data());
 }
 
 void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
@@ -624,15 +685,12 @@ void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
     drawcalls.Clock();
     
     MlIndexBuffer*  IndexBuffer    = static_cast<MlIndexBuffer*>(mIndexBuffer);
-    MlVertexBuffer* VertexBuffer   = static_cast<MlVertexBuffer*>(mVertexBuffer);
-    id<MTLBuffer>   vertexBuffer   = [device newBufferWithBytes:(float*)VertexBuffer->mBuffer length:VertexBuffer->Size() options:MTLResourceStorageModeShared];
     id<MTLBuffer>   indexBuffer    = [device newBufferWithBytes:(float*)IndexBuffer->mBuffer  length:IndexBuffer->Size()  options:MTLResourceStorageModeShared];
     
-    [ml_RenderState.renderCommandEncoder setVertexBuffer:vertexBuffer offset:0 atIndex:0];
+    [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:0 atIndex:0];
     [ml_RenderState.renderCommandEncoder drawIndexedPrimitives:dt2ml[dt] indexCount:count indexType:MTLIndexTypeUInt32 indexBuffer:indexBuffer indexBufferOffset:(index * sizeof(uint32_t))];
     [ml_RenderState.renderCommandEncoder popDebugGroup];
     
-    [vertexBuffer release];
     [indexBuffer release];
 
     drawcalls.Unclock();
@@ -811,4 +869,3 @@ bool MlRenderState::SetDepthClamp(bool on)
 }
 
 }
-

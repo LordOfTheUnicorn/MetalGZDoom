@@ -140,6 +140,8 @@ id<MTLTexture> MlHardwareTexture::CreateTexture(unsigned char * buffer, int w, i
 
     rw = w;//GetTexDimension(w);
     rh = h;//GetTexDimension(h);
+    
+    if (!mTex)
 
     if (!buffer)
     {

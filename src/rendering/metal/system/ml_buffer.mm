@@ -138,9 +138,14 @@ MlVertexBuffer::MlVertexBuffer()
     option = MTLResourceStorageModeShared;
 }
 
+MlVertexBuffer::~MlVertexBuffer()
+{
+
+}
+
 void MlVertexBuffer::Bind(int *offsets)
 {
-    //int i = 0;
+ 
     for(auto &attrinf : mAttributeInfo)
     {
         if (attrinf.size != 0)

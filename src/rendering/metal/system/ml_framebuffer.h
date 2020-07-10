@@ -21,6 +21,8 @@ class MetalFrameBuffer : public SystemBaseFrameBuffer
 public:
     
     bool cur_vsync;
+    bool needCreateRenderState : 1;
+    MTLRenderPassDescriptor* renderPassDescriptor = nullptr;
     dispatch_semaphore_t semaphore;
     const NSUInteger maxBuffers = 3;
     id <MTLRenderPipelineState> piplineState;

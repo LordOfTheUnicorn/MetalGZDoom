@@ -27,6 +27,7 @@ MetalFrameBuffer::MetalFrameBuffer(void *hMonitor, bool fullscreen) :
     Super(hMonitor, false)
 {
     //semaphore = dispatch_semaphore_create(maxBuffers);
+    needCreateRenderState = true;
 }
 
 MetalFrameBuffer::~MetalFrameBuffer()
@@ -53,53 +54,43 @@ void MetalFrameBuffer::BeginFrame()
         MetalCocoaView* const window = GetMacWindow();
         MLRenderer->mScreenBuffers->mDrawable = [window getDrawable];
         
-        MTLRenderPassDescriptor* renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-        if (MLRenderer->mScreenBuffers)
+        if (true)
         {
-            MLRenderer->mScreenBuffers->mSceneFB = MLRenderer->mScreenBuffers->mDrawable.texture;
-            
-            // Color render target
-            renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mDrawable.texture;
-            renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-            
-            //renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+            renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+            if (MLRenderer->mScreenBuffers)
+            {
+                MLRenderer->mScreenBuffers->mSceneFB = MLRenderer->mScreenBuffers->mDrawable.texture;
+                
+                // Color render target
+                renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mDrawable.texture;
+                renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+                
+                //renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
 
-            // Depth render target
-            renderPassDescriptor.depthAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
-            renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-            renderPassDescriptor.depthAttachment.clearDepth = 1.f;
+                // Depth render target
+                renderPassDescriptor.depthAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
+                renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+                renderPassDescriptor.depthAttachment.clearDepth = 1.f;
+                
+                // Stencil render target
+                renderPassDescriptor.stencilAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
+                renderPassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
+                renderPassDescriptor.stencilAttachment.clearStencil = 0.f;
+                
+                
+            }
+            auto fb = GetMetalFrameBuffer();
             
-            // Stencil render target
-            renderPassDescriptor.stencilAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
-            renderPassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
-            renderPassDescriptor.stencilAttachment.clearStencil = 0.f;
-            
-            
+            renderPassDescriptor.renderTargetWidth = 1440;//fb->GetClientWidth();
+            renderPassDescriptor.renderTargetHeight = 900;//fb->GetClientHeight();
+            renderPassDescriptor.defaultRasterSampleCount = 1;
+            //float* val = (float*)malloc(40000000);
+            //ml_RenderState.mtl_vertexBuffer = [device newBufferWithBytes:val length:sizeof(*val) options:MTLResourceStorageModeShared];
+            //free(val);
+            needCreateRenderState = false;
         }
-        auto fb = GetMetalFrameBuffer();
-        
-        renderPassDescriptor.renderTargetWidth = 1440;//fb->GetClientWidth();
-        renderPassDescriptor.renderTargetHeight = 900;//fb->GetClientHeight();
-        renderPassDescriptor.defaultRasterSampleCount = 1;
-    
         ml_RenderState.CreateRenderState(renderPassDescriptor);
-        //ml_RenderState.commandBuffer = [ml_RenderState.commandQueue commandBuffer];
-       // ml_RenderState.renderCommandEncoder = [ml_RenderState.commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-       // ml_RenderState.renderCommandEncoder.label = @"renderCommandEncoder";
-       // [ml_RenderState.renderCommandEncoder setFrontFacingWinding:MTLWindingCounterClockwise];
-       // [ml_RenderState.renderCommandEncoder setCullMode:MTLCullModeBack];
-       //
-       // if (ml_RenderState.activeShader == nullptr)
-       // {
-       //     ml_RenderState.activeShader = new MlShader();
-       //     ml_RenderState.activeShader->Load();
-       // }
-       //
-       //
-       // [ml_RenderState.renderCommandEncoder setRenderPipelineState:ml_RenderState.activeShader->pipelineState];
-       // [ml_RenderState.renderCommandEncoder setDepthStencilState:ml_RenderState.activeShader->depthState];
-    
-        //[renderPassDescriptor release];
+        
     }
 }
 
