@@ -94,6 +94,7 @@ class MlRenderState : public FRenderState
     id<MTLDepthStencilState> depthState;
     MTLRenderPipelineDescriptor * renderPipelineDesc;
     MTLDepthStencilDescriptor *depthStateDesc;
+    MTLCompareFunction depthCompareFunc = MTLCompareFunctionAlways;
 
 
 public:
@@ -186,7 +187,7 @@ public:
     void ClearScreen() override;
     void Draw(int dt, int index, int count, bool apply = true) override;
     void DrawIndexed(int dt, int index, int count, bool apply = true) override;
-    void CreateFanToTrisIndexBuffer(int index, int& count);
+    void CreateFanToTrisIndexBuffer();
     id<MTLBuffer> fanIndexBuffer;
 
     bool SetDepthClamp(bool on) override;

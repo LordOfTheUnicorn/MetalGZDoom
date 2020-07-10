@@ -260,7 +260,7 @@ bool MlRenderState::ApplyShader()
         renderPipelineDesc.vertexDescriptor = vertexDesc;
         renderPipelineDesc.sampleCount = 1;
         
-        depthStateDesc.depthCompareFunction = MTLCompareFunctionAlways;
+        depthStateDesc.depthCompareFunction = depthCompareFunc;
         depthStateDesc.depthWriteEnabled = YES;
         depthStateDesc.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
         depthStateDesc.backFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
@@ -485,10 +485,8 @@ void MlRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescri
     [ml_RenderState.renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
     [ml_RenderState.renderCommandEncoder setCullMode:MTLCullModeNone];
     [ml_RenderState.renderCommandEncoder setViewport:(MTLViewport){0.0, 0.0, (double)GetMetalFrameBuffer()->GetClientWidth(), (double)GetMetalFrameBuffer()->GetClientHeight(), 0.0, 1.0 }];
-    //if (pipelineState)
-    //    [ml_RenderState.renderCommandEncoder setRenderPipelineState:pipelineState];
-    //if (depthState)
-    //    [ml_RenderState.renderCommandEncoder setDepthStencilState:  depthState];
+    CreateFanToTrisIndexBuffer();
+    
     if (activeShader == nullptr)
     {
         activeShader = new MlShader();
@@ -625,7 +623,8 @@ void MlRenderState::ApplyBlendMode()
 //
 //==========================================================================
 
-static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine, MTLPrimitiveTypeTriangle, MTLPrimitiveTypeTriangle, MTLPrimitiveTypeLineStrip };
+static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine, MTLPrimitiveTypeTriangle, MTLPrimitiveTypeTriangle, MTLPrimitiveTypeTriangleStrip };
+//static int dt2gl[] =            { GL_POINTS,             GL_LINES,             GL_TRIANGLES,             GL_TRIANGLE_FAN,          GL_TRIANGLE_STRIP };
 
 void MlRenderState::Draw(int dt, int index, int count, bool apply)
 {
@@ -636,17 +635,16 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
     
     drawcalls.Clock();
     
-    [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:0 atIndex:0];
-    
     if (dt == 3)
     {
-        CreateFanToTrisIndexBuffer(index, count);
-        [ml_RenderState.renderCommandEncoder drawIndexedPrimitives:dt2ml[dt] indexCount:count indexType:MTLIndexTypeUInt32 indexBuffer:fanIndexBuffer indexBufferOffset:0];
-        //[fanIndexBuffer release];
+        MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+        [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:mtlBuffer->mStride * index atIndex:0];
+        [ml_RenderState.renderCommandEncoder drawIndexedPrimitives:dt2ml[dt] indexCount:(count - 2) * 3 indexType:MTLIndexTypeUInt32 indexBuffer:ml_RenderState.fanIndexBuffer indexBufferOffset:0];
     }
     else
     {
-        [ml_RenderState.renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:0 vertexCount:count];
+        [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:0 atIndex:0];
+        [ml_RenderState.renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:index vertexCount:count];
     }
     
     [ml_RenderState.renderCommandEncoder popDebugGroup];
@@ -654,26 +652,16 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
     drawcalls.Unclock();
 }
 
-void MlRenderState::CreateFanToTrisIndexBuffer(int index, int& count)
+void MlRenderState::CreateFanToTrisIndexBuffer()
 {
-    TArray<uint32_t> data;
-    for (int i = index + 2; i < (index + count); i+=2)
+   TArray<uint32_t> data;
+    for (int i = 2; i < 1000; i++)
     {
-        data.Push(index);
+        data.Push(0);
         data.Push(i - 1);
         data.Push(i);
     }
-    count = data.Size();
-    if (fanIndexBuffer.length == 0)
-        fanIndexBuffer = [device newBufferWithBytes:data.Data() length:sizeof(uint32_t) * data.Size() options:MTLResourceStorageModeShared];
-    else
-    {
-        uint32_t* val =(uint32_t*) fanIndexBuffer.contents;
-        memcpy(val, (uint32_t*)data.Data(), sizeof(uint32_t) * data.Size());
-    }
-    
-    //FanToTrisIndexBuffer.reset(CreateIndexBuffer());
-    //FanToTrisIndexBuffer->SetData(sizeof(uint32_t) * data.Size(), data.Data());
+    ml_RenderState.fanIndexBuffer = [device newBufferWithBytes:data.Data() length:sizeof(uint32_t) * data.Size() options:MTLResourceStorageModeShared];
 }
 
 void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
@@ -703,8 +691,13 @@ void MlRenderState::SetDepthMask(bool on)
 
 void MlRenderState::SetDepthFunc(int func)
 {
-    //static int df2gl[] = { GL_LESS, GL_LEQUAL, GL_ALWAYS };
-    //glDepthFunc(df2gl[func]);
+    static MTLCompareFunction df2ml[] = { MTLCompareFunctionLess, MTLCompareFunctionLessEqual, MTLCompareFunctionAlways };
+    depthCompareFunc = df2ml[func];
+    depthStateDesc.depthCompareFunction = depthCompareFunc;
+    depthStateDesc.depthWriteEnabled = YES;
+    depthStateDesc.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
+    depthStateDesc.backFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
+    depthState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
 }
 
 void MlRenderState::SetDepthRange(float min, float max)
@@ -719,6 +712,14 @@ void MlRenderState::SetColorMask(bool r, bool g, bool b, bool a)
 
 void MlRenderState::SetStencil(int offs, int op, int flags = -1)
 {
+    //MTLCompareFunctionNever = 0,
+    //MTLCompareFunctionLess = 1,
+    //MTLCompareFunctionEqual = 2,
+    //MTLCompareFunctionLessEqual = 3,
+    //MTLCompareFunctionGreater = 4,
+    //MTLCompareFunctionNotEqual = 5,
+    //MTLCompareFunctionGreaterEqual = 6,
+    //MTLCompareFunctionAlways = 7,
     //static int op2gl[] = { GL_KEEP, GL_INCR, GL_DECR };
 
     //glStencilFunc(GL_EQUAL, screen->stencilValue + offs, ~0);        // draw sky into stencil
