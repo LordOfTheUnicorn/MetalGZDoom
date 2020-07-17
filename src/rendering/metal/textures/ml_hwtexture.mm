@@ -177,6 +177,7 @@ id<MTLTexture> MlHardwareTexture::CreateTexture(unsigned char * buffer, int w, i
     desc.textureType = MTLTextureType2D;
     desc.sampleCount = 1;
     
+    
     mTex = [device newTextureWithDescriptor:desc];
     
     if(buffer)

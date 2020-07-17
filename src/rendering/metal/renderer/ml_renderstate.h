@@ -56,6 +56,8 @@ class MlRenderState : public FRenderState
 
     int mEffectState;
     int mTempTM = TM_NORMAL;
+    
+    bool needCreateDepthState : 1;
 
     FRenderStyle stRenderStyle;
     int stSrcBlend, stDstBlend;
@@ -63,7 +65,7 @@ class MlRenderState : public FRenderState
     bool stSplitEnabled;
     int stBlendEquation;
     MTLRenderPassDescriptor* DefRenderPassDescriptor;
-    //id<MTLRenderPipelineState>
+    bool needCreateDepthStare : 1;
 
     int mNumDrawBuffers = 1;
 
@@ -126,6 +128,7 @@ public:
         VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
         FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
         AllocDesc();
+        mtl_vertexBuffer = [device newBufferWithLength:40000000 options:MTLResourceStorageModeShared];
         commandQueue = [device newCommandQueueWithMaxCommandBufferCount:512];
         if(error)
         {

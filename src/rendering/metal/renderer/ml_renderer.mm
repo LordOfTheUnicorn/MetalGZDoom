@@ -96,6 +96,7 @@ MlRenderer::MlRenderer(MetalFrameBuffer *fb)
 {
     framebuffer = fb;
     mHWViewpointUniforms = new mtlHWViewpointUniforms();
+    loadDepthStencil = false;
 }
 
 void MlRenderer::Initialize(int width, int height, id<MTLDevice> device)

@@ -259,12 +259,6 @@ bool MlRenderState::ApplyShader()
         renderPipelineDesc.fragmentFunction = FShader;
         renderPipelineDesc.vertexDescriptor = vertexDesc;
         renderPipelineDesc.sampleCount = 1;
-        
-        //depthStateDesc.depthCompareFunction = depthCompareFunc;
-        //depthStateDesc.depthWriteEnabled = YES;
-        //depthStateDesc.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
-        //depthStateDesc.backFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
-        //depthState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
             
         renderPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
         renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
@@ -288,8 +282,11 @@ bool MlRenderState::ApplyShader()
         }
     }
     [ml_RenderState.renderCommandEncoder setRenderPipelineState:pipelineState];
-    //[ml_RenderState.renderCommandEncoder setDepthStencilState:  depthState];
-    
+    if (needCreateDepthState)
+    {
+        depthState = [device newDepthStencilStateWithDescriptor: depthStateDesc];
+        [ml_RenderState.renderCommandEncoder setDepthStencilState:  depthState];
+    }
 
     int fogset = 0;
 
@@ -377,9 +374,9 @@ bool MlRenderState::ApplyShader()
     MlDataBuffer* dataBuffer = (MlDataBuffer*)screen->mViewpoints;
     
     PerView data;
-    data.ModelMatrix       = simd_transpose(activeShader->modelmatrix.mat);
-    data.TextureMatrix     = /*simd_transpose*/(activeShader->texturematrix.mat);
-    data.NormalModelMatrix = simd_transpose(activeShader->normalmodelmatrix.mat);
+    data.ModelMatrix       = (activeShader->modelmatrix.mat);
+    data.TextureMatrix     = (activeShader->texturematrix.mat);
+    data.NormalModelMatrix = (activeShader->normalmodelmatrix.mat);
     auto fb = GetMetalFrameBuffer();
     
     [ml_RenderState.renderCommandEncoder setVertexBytes:&data length:sizeof(data) atIndex:3];
@@ -442,19 +439,21 @@ void MlRenderState::ApplyBuffers()
     //if (mVertexBuffer != mCurrentVertexBuffer || mVertexOffsets[0] != mCurrentVertexOffsets[0] || mVertexOffsets[1] != mCurrentVertexOffsets[1])
     if (mVertexBuffer != nullptr)
     {
-        assert(mVertexBuffer != nullptr);
+        //assert(mVertexBuffer != nullptr);
         MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
         //mtlBuffer->Bind(mVertexOffsets);
-        if (mtl_vertexBuffer.length < mtlBuffer->Size())
-        {
-            [mtl_vertexBuffer release];
-            mtl_vertexBuffer = [device newBufferWithBytes:mtlBuffer->mBuffer length:mtlBuffer->Size() options:MTLResourceStorageModeShared];
-        }
-        else
-        {
-            float* val = (float*)mtl_vertexBuffer.contents;
-            memcpy(val, (float*)mtlBuffer->mBuffer, mtlBuffer->Size());
-        }
+        //if (mtl_vertexBuffer.length < mtlBuffer->Size())
+        //{
+        //    //[mtl_vertexBuffer release];
+        //    mtl_vertexBuffer = [device newBufferWithBytes:mtlBuffer->mBuffer length:mtlBuffer->Size() options:MTLResourceStorageModeShared];
+        //}
+        //else
+        //{
+        //assert(mtl_vertexBuffer.length < mtlBuffer->Size());
+        
+        float* val = (float*)mtl_vertexBuffer.contents;
+        memcpy(val, (float*)mtlBuffer->mBuffer, mtlBuffer->Size());
+        //}
         mCurrentVertexBuffer = mVertexBuffer;
         mCurrentVertexOffsets[0] = mVertexOffsets[0];
         mCurrentVertexOffsets[1] = mVertexOffsets[1];
@@ -505,6 +504,7 @@ bool MlRenderState::VertexBufferAttributeWasChange(const MLVertexBufferAttribute
         if (prevAttributeInfo[i].size != attr[i].size)
             return true;
     }
+    return false;
 }
 
 void MlRenderState::setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t offset /*= 0*/)
@@ -628,23 +628,29 @@ static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine,
 
 void MlRenderState::Draw(int dt, int index, int count, bool apply)
 {
+    float* val = (float*)mtl_vertexBuffer.contents;
+    MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+    float* vertexBuffer = (float*)mtlBuffer->mBuffer;
     if (apply)
     {
         Apply();
     }
     
     drawcalls.Clock();
-    
+    float* buffer = &(((float*)(mtlBuffer->mBuffer))[(mtlBuffer->mStride * index) / 4]);
     if (dt == 3)
     {
-        MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
-        [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:mtlBuffer->mStride * index atIndex:0];
+        //MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+        //[ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:mtlBuffer->mStride * index atIndex:0];
+        [ml_RenderState.renderCommandEncoder setVertexBytes:buffer length:count * mtlBuffer->mStride atIndex:0];
         [ml_RenderState.renderCommandEncoder drawIndexedPrimitives:dt2ml[dt] indexCount:(count - 2) * 3 indexType:MTLIndexTypeUInt32 indexBuffer:ml_RenderState.fanIndexBuffer indexBufferOffset:0];
     }
     else
     {
-        [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:0 atIndex:0];
-        [ml_RenderState.renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:index vertexCount:count];
+        id<MTLBuffer> buff = [device newBufferWithBytes:buffer length:count * mtlBuffer->mStride options:MTLResourceStorageModeShared];
+        [ml_RenderState.renderCommandEncoder setVertexBuffer:/*mtl_vertexBuffer*/buff offset:0 atIndex:0];
+        [ml_RenderState.renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:/*index*/0 vertexCount:count];
+        [buff release];
     }
     
     [ml_RenderState.renderCommandEncoder popDebugGroup];
@@ -686,18 +692,26 @@ void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
 
 void MlRenderState::SetDepthMask(bool on)
 {
-    //glDepthMask(on);
+    if(!on)
+    {
+        //depthStateDesc.depthWriteEnabled = on;
+        //depthStateDesc.depthCompareFunction = MTLCompareFunctionNever;
+        //depthStateDesc.frontFaceStencil.stencilCompareFunction    = MTLCompareFunctionNever;
+        //depthStateDesc.frontFaceStencil.stencilFailureOperation   = MTLStencilOperationZero;
+        //depthStateDesc.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationZero;
+        //depthStateDesc.backFaceStencil.stencilCompareFunction    = MTLCompareFunctionNever;
+        //depthStateDesc.backFaceStencil.stencilFailureOperation   = MTLStencilOperationZero;
+        //depthStateDesc.backFaceStencil.depthStencilPassOperation = MTLStencilOperationZero;
+    }
 }
 
 void MlRenderState::SetDepthFunc(int func)
 {
-    static MTLCompareFunction df2ml[] = { MTLCompareFunctionLess, MTLCompareFunctionLessEqual, MTLCompareFunctionAlways };
+    static MTLCompareFunction df2ml[] = { MTLCompareFunctionLess, MTLCompareFunctionLess, MTLCompareFunctionAlways };
+    //                                  {         GL_LESS,                GL_LEQUAL,                   GL_ALWAYS };
     depthCompareFunc = df2ml[func];
     depthStateDesc.depthCompareFunction = depthCompareFunc;
-    depthStateDesc.depthWriteEnabled = YES;
-    depthState = [device newDepthStencilStateWithDescriptor:depthStateDesc];
-    //[ml_RenderState.renderCommandEncoder setDepthClipMode: MTLDepthClipModeClamp];
-    
+    needCreateDepthState = true;
 }
 
 void MlRenderState::SetDepthRange(float min, float max)
@@ -712,27 +726,24 @@ void MlRenderState::SetColorMask(bool r, bool g, bool b, bool a)
 
 void MlRenderState::SetStencil(int offs, int op, int flags = -1)
 {
-    // MTLStencilOperationKeep = 0,                                 //MTLCompareFunctionNever = 0,
-    // MTLStencilOperationZero = 1,                                 //MTLCompareFunctionLess = 1,
-    // MTLStencilOperationReplace = 2,                              //MTLCompareFunctionEqual = 2,
-    // MTLStencilOperationIncrementClamp = 3,                       //MTLCompareFunctionLessEqual = 3,
-    // MTLStencilOperationDecrementClamp = 4,                       //MTLCompareFunctionGreater = 4,
-    // MTLStencilOperationInvert = 5,                               //MTLCompareFunctionNotEqual = 5,
-    // MTLStencilOperationIncrementWrap = 6,                        //MTLCompareFunctionGreaterEqual = 6,
-    // MTLStencilOperationDecrementWrap = 7,                        //MTLCompareFunctionAlways = 7,
     static MTLStencilOperation op2ml[] = { MTLStencilOperationKeep, MTLStencilOperationIncrementClamp, MTLStencilOperationDecrementClamp };
-    
+    //                                          { GL_KEEP,                        GL_INCR,                          GL_DECR };
     depthStateDesc.frontFaceStencil.stencilCompareFunction    = MTLCompareFunctionEqual;
     depthStateDesc.frontFaceStencil.stencilFailureOperation   = MTLStencilOperationKeep;
     depthStateDesc.frontFaceStencil.depthStencilPassOperation = op2ml[op];
-    //depthStateDesc.frontFaceStencil.readMask
-    //depthStateDesc.frontFaceStencil.writeMask
+    //depthStateDesc.frontFaceStencil.readMask  = 0xff;
+    //depthStateDesc.frontFaceStencil.writeMask = 0xff;
+    //depthStateDesc.backFaceStencil.readMask   = 0xff;
+    //depthStateDesc.backFaceStencil.writeMask  = 0xff;
     depthStateDesc.backFaceStencil.stencilCompareFunction    = MTLCompareFunctionEqual;
     depthStateDesc.backFaceStencil.stencilFailureOperation   = MTLStencilOperationKeep;
     depthStateDesc.backFaceStencil.depthStencilPassOperation = op2ml[op];
     
-    depthStateDesc.depthCompareFunction = MTLCompareFunctionEqual;
+    
     [ml_RenderState.renderCommandEncoder setStencilReferenceValue:screen->stencilValue + offs ];
+    needCreateDepthState = true;
+    
+    //MLRenderer->loadDepthStencil = true;
     //glStencilFunc(GL_EQUAL, screen->stencilValue + offs, ~0);        // draw sky into stencil
     //glStencilOp(GL_KEEP, GL_KEEP, op2gl[op]);        // this stage doesn't modify the stencil
 
@@ -746,10 +757,10 @@ void MlRenderState::SetStencil(int offs, int op, int flags = -1)
 
 void MlRenderState::ToggleState(int state, bool on)
 {
-    //if (on)
-    //{
+    if (on)
+    {
     //    glEnable(state);
-    //}
+    }
     //else
     //{
     //    glDisable(state);
@@ -781,8 +792,11 @@ void MlRenderState::EnableClipDistance(int num, bool state)
 void MlRenderState::Clear(int targets)
 {
     // This always clears to default values.
-    //int gltarget = 0;
-    //if (targets & CT_Depth)
+    int gltarget = 0;
+    if (targets)
+    {
+        
+    }
     //{
     //    gltarget |= GL_DEPTH_BUFFER_BIT;
     //    glClearDepth(1);
@@ -802,7 +816,8 @@ void MlRenderState::Clear(int targets)
 
 void MlRenderState::EnableStencil(bool on)
 {
-    ToggleState(GL_STENCIL_TEST, on);
+    if (!on)
+        depthStateDesc.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionNever;
 }
 
 void MlRenderState::SetScissor(int x, int y, int w, int h)
@@ -821,13 +836,15 @@ void MlRenderState::SetViewport(int x, int y, int w, int h)
     m_Viewport.originY = y;
     m_Viewport.height = h;
     m_Viewport.width = w;
+    m_Viewport.znear = 0.0f;
+    m_Viewport.zfar = 1.0f;
     
     [ml_RenderState.renderCommandEncoder setViewport:m_Viewport];
 }
 
 void MlRenderState::EnableDepthTest(bool on)
 {
-    //ToggleState(GL_DEPTH_TEST, on);
+    depthStateDesc.depthWriteEnabled  = on;
 }
 
 void MlRenderState::EnableMultisampling(bool on)

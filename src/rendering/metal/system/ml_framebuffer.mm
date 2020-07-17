@@ -64,21 +64,16 @@ void MetalFrameBuffer::BeginFrame()
                 // Color render target
                 renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mDrawable.texture;
                 renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-                
-                //renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-
+                renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
                 // Depth render target
                 renderPassDescriptor.depthAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
-                renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
-                renderPassDescriptor.depthAttachment.clearDepth = 1.f;
-                
-                // Stencil render target
                 renderPassDescriptor.stencilAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
-                renderPassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
-                renderPassDescriptor.stencilAttachment.clearStencil = 0.f;
-                
-                
             }
+            
+            renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
+            renderPassDescriptor.depthAttachment.clearDepth = 1.f;
+            //renderPassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
+            //renderPassDescriptor.stencilAttachment.clearStencil = 0.f;
             auto fb = GetMetalFrameBuffer();
             
             renderPassDescriptor.renderTargetWidth = 1440;//fb->GetClientWidth();

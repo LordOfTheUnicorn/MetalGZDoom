@@ -98,6 +98,7 @@ public:
     MlShaderProgram *mPresent3dColumnShader = nullptr;
     MlShaderProgram *mPresent3dRowShader = nullptr;
     //FShadowMapShader *mShadowMapShader = nullptr;
+    bool loadDepthStencil : 1;
 
     //FRotator mAngles;
 

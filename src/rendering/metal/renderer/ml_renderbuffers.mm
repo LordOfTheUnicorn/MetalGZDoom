@@ -154,12 +154,31 @@ id<MTLTexture> MlRenderBuffers::CreateRenderBuffer(const char *name, MTLPixelFor
     desc.width = width;
     desc.height = height;
     desc.pixelFormat = format;
+    desc.textureType = MTLTextureType2D;
     desc.storageMode = MTLStorageModePrivate;
-    desc.usage = MTLTextureUsageRenderTarget;
+    desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+    
     
     
     // printf(name);
     // printf(" is created/n");
+    id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    return dummy;
+}
+
+id<MTLTexture> MlRenderBuffers::CreateDepthTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations)
+{
+    MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
+    desc.width = width;
+    desc.height = height;
+    desc.pixelFormat = format;
+    desc.storageMode = MTLStorageModePrivate;
+    desc.usage = MTLTextureUsageRenderTarget;
+    desc.textureType = MTLTextureType2D;
+    //desc.sampleCount = samples;
+    
+   // printf(name);
+   // printf(" is created(Create2DMultisampleTexture)\n");
     id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
     return dummy;
 }
@@ -209,7 +228,8 @@ void MlRenderBuffers::CreateScene(int width, int height, int samples, bool needs
     
     auto fb = GetMetalFrameBuffer();
     
-    mSceneDepthStencilTex = CreateRenderBuffer("SceneDepthStencil", MTLPixelFormatDepth32Float_Stencil8, fb->GetClientWidth(), fb->GetClientHeight());
+    //mSceneDepthStencilTex = CreateRenderBuffer("SceneDepthStencil", MTLPixelFormatDepth32Float_Stencil8, fb->GetClientWidth(), fb->GetClientHeight());
+    mSceneDepthStencilTex = CreateDepthTexture("mSceneDepthTex", MTLPixelFormatDepth32Float_Stencil8, fb->GetClientWidth(), fb->GetClientHeight(), 0, 0);
     mSceneFogTex = Create2DTexture("SceneFog", MTLPixelFormatRGBA8Unorm, width, height);
     mSceneNormalTex = Create2DTexture("SceneNormal", MTLPixelFormatRGB10A2Unorm, width, height);
     mSceneDepthStencilBuf = Create2DTexture("SceneDepthStencil", MTLPixelFormatDepth32Float_Stencil8, width, height);
