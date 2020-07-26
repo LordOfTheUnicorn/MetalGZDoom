@@ -22,17 +22,18 @@ struct TexFilter
 struct MetalState
 {
     id<MTLTexture>               mTextures;
-    id<MTLSamplerState>          mSamplers;
-    int8_t                       mLastVSTex;
-    int8_t                       mLastPSTex;
-    int8_t                       mLastVSSampler;
-    int8_t                       mLastPSSampler;
-    int                          mFormat;
-    int                          mSize;
-    int8_t                       mUsageFlags;
-    size_t                       mOffset;
-    int                          mWidth;
-    int                          mHeight;
+    int                                 Id;
+    //id<MTLSamplerState>          mSamplers;
+    //int8_t                       mLastVSTex;
+    //int8_t                       mLastPSTex;
+    //int8_t                       mLastVSSampler;
+    //int8_t                       mLastPSSampler;
+    //int                          mFormat;
+    //int                          mSize;
+    //int8_t                       mUsageFlags;
+    //size_t                       mOffset;
+    //int                          mWidth;
+    //int                          mHeight;
 };
 
 struct offsetSize
@@ -50,8 +51,10 @@ private:
     bool mipmapped = false;
     MlBuffer *mBuffer;
     MetalState metalState[STATE_TEXTURES_COUNT];
+    id<MTLTexture>               mTextures;
+    //int currentTexId;
     int mBufferSize = 0;
-    id<MTLTexture> mTex;
+    //id<MTLTexture> mTex;
     NSString *nameTex;
     //std::vector<offsetSize> mOffsetSize;
     
@@ -60,13 +63,21 @@ private:
 
 public:
     MlHardwareTexture();
-
     ~MlHardwareTexture();
 
-//    static void Unbind(int texunit);
-//    static void UnbindAll();
+    static void Unbind(int texunit);
+    static void UnbindAll();
 
     void BindToFrameBuffer(int w, int h);
+    int FindFreeTexIndex()
+    {
+        for (int i = 0; i < STATE_TEXTURES_COUNT; i++)
+        {
+            if (metalState[i].Id == -1)
+                return i;
+        }
+        return -1;
+    }
 
   //  unsigned int Bind(int texunit, bool needmipmap);
   //  bool BindOrCreate(FTexture *tex, int texunit, int clampmode, int translation, int flags);
@@ -76,11 +87,12 @@ public:
 
     //bool CreateTexture(uint8_t texID, int w, int h, int pixelsize, int format, const void *pixels, id<MTLDevice> device);
     unsigned int CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name) override;
-    id<MTLTexture> CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, const char *name);
+    unsigned int CreateWipeScreen(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name);
+    bool CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, const char *name);
     void ResetAll();
     void Reset(size_t id);
     bool BindOrCreate(FTexture *tex, int texunit, int clampmode, int translation, int flags, id <MTLRenderCommandEncoder> encoder);
-    unsigned int Bind(int texunit, bool needmipmap);
+    int Bind(int texunit, bool needmipmap);
  //   unsigned int GetTextureHandle(int translation);
 };
 }

@@ -66,7 +66,7 @@ class MlRenderState : public FRenderState
     int stBlendEquation;
     MTLRenderPassDescriptor* DefRenderPassDescriptor;
     bool needCreateDepthStare : 1;
-
+    bool depthWriteEnabled : 1;
     int mNumDrawBuffers = 1;
 
     bool ApplyShader();
@@ -93,10 +93,28 @@ class MlRenderState : public FRenderState
     id <MTLFunction> FShader;
     MTLVertexDescriptor *vertexDesc;
     id<MTLRenderPipelineState> pipelineState;
-    id<MTLDepthStencilState> depthState;
+    
+    struct DepthIndex
+    {
+        DepthIndex(MTLStencilOperation stencil, MTLCompareFunction compare, int _ind)
+        {
+            stencilOperation = stencil;
+            compareFunction  = compare;
+            ind              = _ind;
+        }
+        ~DepthIndex() = default;
+        DepthIndex()  = default;
+        MTLStencilOperation stencilOperation;
+        MTLCompareFunction  compareFunction;
+        int                 ind;
+    };
+    
+    DepthIndex depthIndex[9];
+    id<MTLDepthStencilState> depthState[9];
     MTLRenderPipelineDescriptor * renderPipelineDesc;
     MTLDepthStencilDescriptor *depthStateDesc;
-    MTLCompareFunction depthCompareFunc = MTLCompareFunctionAlways;
+    MTLCompareFunction depthCompareFunc;
+    bool needSetUniforms : 1;
 
 
 public:
@@ -106,18 +124,45 @@ public:
     id <MTLCommandBuffer> commandBuffer;
     id <MTLRenderCommandEncoder> renderCommandEncoder;
     id<MTLBuffer> mtl_vertexBuffer;
+    bool needCpyBuffer : 1;
     void CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor);
     void setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t offset = 0);
     void CopyVertexBufferAttribute(const MLVertexBufferAttribute* attr);
     bool VertexBufferAttributeWasChange(const MLVertexBufferAttribute* attr);
+    int  FindDepthIndex (MTLDepthStencilDescriptor* desc);
     void AllocDesc()
     {
+        CreateFanToTrisIndexBuffer();
         if (vertexDesc == nil)
             vertexDesc = [[MTLVertexDescriptor alloc] init];
-        if (depthStateDesc == nil)
-            depthStateDesc = [[MTLDepthStencilDescriptor alloc] init];
         if (renderPipelineDesc == nil)
             renderPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
+        if (depthStateDesc == nil)
+            depthStateDesc = [[MTLDepthStencilDescriptor alloc] init];
+        depthWriteEnabled = false;
+        MTLStencilOperation op2ml[] = { MTLStencilOperationKeep, MTLStencilOperationIncrementClamp, MTLStencilOperationDecrementClamp };
+        //                                          { GL_KEEP,                        GL_INCR,                          GL_DECR };
+        MTLCompareFunction  df2ml[] = { MTLCompareFunctionLess, MTLCompareFunctionLessEqual, MTLCompareFunctionAlways };
+        //                                  {         GL_LESS,                GL_LEQUAL,                   GL_ALWAYS };
+        
+        int val = 0;
+        for (int i = 0; i < 3; i++)
+        {
+            for (int j = 0; j < 3; j++)
+            {
+                depthStateDesc.frontFaceStencil.stencilCompareFunction    = MTLCompareFunctionEqual;
+                depthStateDesc.frontFaceStencil.stencilFailureOperation   = MTLStencilOperationKeep;
+                depthStateDesc.frontFaceStencil.depthStencilPassOperation = op2ml[i];
+                depthStateDesc.backFaceStencil.stencilCompareFunction    = MTLCompareFunctionEqual;
+                depthStateDesc.backFaceStencil.stencilFailureOperation   = MTLStencilOperationKeep;
+                depthStateDesc.backFaceStencil.depthStencilPassOperation = op2ml[i];
+                depthStateDesc.depthCompareFunction =  df2ml[j];
+                depthStateDesc.depthWriteEnabled = YES;
+                depthState[val] = [device newDepthStencilStateWithDescriptor: depthStateDesc];
+                depthIndex[val] = {op2ml[i], df2ml[j], val};
+                val++;
+            }
+        }
     }
     
     MlRenderState()
@@ -129,7 +174,8 @@ public:
         FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
         AllocDesc();
         mtl_vertexBuffer = [device newBufferWithLength:40000000 options:MTLResourceStorageModeShared];
-        commandQueue = [device newCommandQueueWithMaxCommandBufferCount:512];
+        commandQueue = [device newCommandQueueWithMaxCommandBufferCount:1024];
+        needCpyBuffer = true;
         if(error)
         {
             NSLog(@"Failed to created pipeline state, error %@", error);
@@ -145,7 +191,8 @@ public:
     
     ~MlRenderState()
     {
-        //[mtl_vertexBuffer release];
+        
+            //[mtl_vertexBuffer release];
         delete activeShader;
     }
     
@@ -215,5 +262,3 @@ static MlRenderState ml_RenderState;
 static MetalCocoaView* m_view;
 
 }
-
-

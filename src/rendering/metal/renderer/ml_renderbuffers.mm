@@ -236,7 +236,7 @@ void MlRenderBuffers::CreateScene(int width, int height, int samples, bool needs
     MetalCocoaView* const window = GetMacWindow();
     mDrawable = [m_view getDrawable];
     mDrawable = [window getDrawable];
-    mSceneFB = mDrawable.texture;//CreateRenderBuffer("SceneFB", MTLPixelFormatBGRA8Unorm, width, height);
+    //mSceneFB = CreateRenderBuffer("SceneFB", MTLPixelFormatBGRA8Unorm_sRGB, width, height);
     mSceneDataFB = Create2DTexture("SceneGBufferFB", MTLPixelFormatRGBA8Unorm, width, height);
 }
 
