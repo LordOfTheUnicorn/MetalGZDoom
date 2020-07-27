@@ -913,6 +913,7 @@ void D_Display ()
 	else
 	{
 		// wipe update
+        printf("wipe update\n");
 		uint64_t wipestart, nowtime, diff;
 		bool done;
 
@@ -1002,6 +1003,7 @@ void D_DoomLoop ()
 
 	for (;;)
 	{
+        @autoreleasepool {
 		try
 		{
 			// frame syncronous IO operations
@@ -1058,6 +1060,7 @@ void D_DoomLoop ()
 			Printf("%s", error.stacktrace.GetChars());
 			D_ErrorCleanup();
 		}
+        }
 	}
 }
 
