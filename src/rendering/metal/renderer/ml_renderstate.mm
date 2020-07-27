@@ -437,36 +437,27 @@ bool MlRenderState::ApplyShader()
 
 void MlRenderState::ApplyBuffers()
 {
-    //if (mVertexBuffer != mCurrentVertexBuffer || mVertexOffsets[0] != mCurrentVertexOffsets[0] || mVertexOffsets[1] != mCurrentVertexOffsets[1])
-    if (mVertexBuffer != nullptr)
+    if (mVertexBuffer != mCurrentVertexBuffer || mVertexOffsets[0] != mCurrentVertexOffsets[0] || mVertexOffsets[1] != mCurrentVertexOffsets[1])
     {
-        //assert(mVertexBuffer != nullptr);
-        MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
-        //mtlBuffer->Bind(mVertexOffsets);
-        //if (mtl_vertexBuffer.length < mtlBuffer->Size())
-        //{
-        //    //[mtl_vertexBuffer release];
-        //    mtl_vertexBuffery = [device newBufferWithBytes:mtlBuffer->mBuffer length:mtlBuffer->Size() options:MTLResourceStorageModeShared];
-        //}
-        //else
-        //{
-        //assert(mtl_vertexBuffer.length < mtlBuffer->Size());
-        
-        float* val = (float*)mtl_vertexBuffer.contents;
-        memcpy(val, (float*)mtlBuffer->mBuffer, mtlBuffer->Size());
-        //}
-        mCurrentVertexBuffer = mVertexBuffer;
-        mCurrentVertexOffsets[0] = mVertexOffsets[0];
-        mCurrentVertexOffsets[1] = mVertexOffsets[1];
-    }
-    if (mIndexBuffer != nullptr)
-    {
-        if (mIndexBuffer)
+        if (mVertexBuffer != nullptr)
         {
-            MlIndexBuffer* IndxBuffer = static_cast<MlIndexBuffer*>(mIndexBuffer);
-            int* arr = (int*)(IndxBuffer->mBuffer);
+            MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+            float* val = (float*)mtl_vertexBuffer.contents;
+            memcpy(val, (float*)mtlBuffer->mBuffer, mtlBuffer->Size());
+            printf("SIZE = %zu\n",  mtlBuffer->Size());
+            mCurrentVertexBuffer = mVertexBuffer;
+            mCurrentVertexOffsets[0] = mVertexOffsets[0];
+            mCurrentVertexOffsets[1] = mVertexOffsets[1];
         }
-        mCurrentIndexBuffer = mIndexBuffer;
+        if (mIndexBuffer != nullptr)
+        {
+            if (mIndexBuffer)
+            {
+                MlIndexBuffer* IndxBuffer = static_cast<MlIndexBuffer*>(mIndexBuffer);
+                int* arr = (int*)(IndxBuffer->mBuffer);
+            }
+            mCurrentIndexBuffer = mIndexBuffer;
+        }
     }
 }
 
@@ -534,6 +525,7 @@ void MlRenderState::EndFrame()
     
     [ml_RenderState.renderCommandEncoder endEncoding];
     [commandBuffer commit];
+    printf("EndFrame\n");
     needCpyBuffer = true;
 }
 
@@ -663,7 +655,7 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
     else
     {
         id<MTLBuffer> buff = [device newBufferWithBytes:buffer length:count * mtlBuffer->mStride options:MTLResourceStorageModeShared];
-        [ml_RenderState.renderCommandEncoder setVertexBuffer:/*mtl_vertexBuffer*/buff offset:0 atIndex:0];
+        [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:mtlBuffer->mStride * index atIndex:0];
         [ml_RenderState.renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:/*index*/0 vertexCount:count];
         [buff release];
     }
