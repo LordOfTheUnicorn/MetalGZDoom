@@ -655,7 +655,7 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
     else
     {
         id<MTLBuffer> buff = [device newBufferWithBytes:buffer length:count * mtlBuffer->mStride options:MTLResourceStorageModeShared];
-        [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:mtlBuffer->mStride * index atIndex:0];
+        [ml_RenderState.renderCommandEncoder setVertexBuffer:/*mtl_vertexBuffer*/buff offset:0 atIndex:0];
         [ml_RenderState.renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:/*index*/0 vertexCount:count];
         [buff release];
     }
@@ -684,7 +684,6 @@ void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
         Apply();
     }
     drawcalls.Clock();
-    
     MlIndexBuffer*  IndexBuffer    = static_cast<MlIndexBuffer*>(mIndexBuffer);
     id<MTLBuffer>   indexBuffer    = [device newBufferWithBytes:(float*)IndexBuffer->mBuffer  length:IndexBuffer->Size()  options:MTLResourceStorageModeShared];
     
