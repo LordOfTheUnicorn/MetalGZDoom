@@ -48,7 +48,7 @@
 #include "hwrenderer/dynlights/hw_lightbuffer.h"
 #include "metal/system/ml_framebuffer.h"
 #include "hwrenderer/utility/hw_cvars.h"
-#include "metal/renderer/ml_renderstate.h"
+#include "metal/renderer/ml_RenderState.h"
 #include "metal/renderer/ml_renderbuffers.h"
 #include "hwrenderer/data/hw_viewpointbuffer.h"
 #include "hwrenderer/scene/hw_clipper.h"
@@ -107,30 +107,30 @@ void MlRenderer::DrawScene(HWDrawInfo *di, int drawmode)
     //glDepthMask(true);
     if (!ml_no_skyclear)
     {
-        screen->mPortalState->RenderFirstSkyPortal(recursion, di, ml_RenderState);
-        //ml_RenderState.EndFrame();
+        screen->mPortalState->RenderFirstSkyPortal(recursion, di, *ml_RenderState);
+        //ml_RenderState->EndFrame();
     }
 
-    di->RenderScene(ml_RenderState);
+    di->RenderScene(*ml_RenderState);
 
-    if (applySSAO && ml_RenderState.GetPassType() == GBUFFER_PASS)
+    if (applySSAO && ml_RenderState->GetPassType() == GBUFFER_PASS)
     {
-        ml_RenderState.EnableDrawBuffers(1);
+        ml_RenderState->EnableDrawBuffers(1);
         mlRenderer->AmbientOccludeScene(di->VPUniforms.mProjectionMatrix.get()[5]);
        // glViewport(screen->mSceneViewport.left, screen->mSceneViewport.top, screen->mSceneViewport.width, screen->mSceneViewport.height);
       //mlRenderer->mBuffers->BindSceneFB(true);
-        ml_RenderState.EnableDrawBuffers(ml_RenderState.GetPassDrawBufferCount());
-        ml_RenderState.Apply();
-        screen->mViewpoints->Bind(ml_RenderState, di->vpIndex);
+        ml_RenderState->EnableDrawBuffers(ml_RenderState->GetPassDrawBufferCount());
+        ml_RenderState->Apply();
+        screen->mViewpoints->Bind(*ml_RenderState, di->vpIndex);
     }
 
     // Handle all portals after rendering the opaque objects but before
     // doing all translucent stuff
     recursion++;
-    //ml_RenderState.EndFrame();
-    screen->mPortalState->EndFrame(di, ml_RenderState);
+    //ml_RenderState->EndFrame();
+    screen->mPortalState->EndFrame(di, *ml_RenderState);
     recursion--;
-    di->RenderTranslucent(ml_RenderState);
+    di->RenderTranslucent(*ml_RenderState);
 }
 
 //-----------------------------------------------------------------------------
@@ -164,15 +164,15 @@ sector_t * MlRenderer::RenderViewpoint (FRenderViewpoint &mainvp, AActor * camer
         {
             bool useSSAO = (gl_ssao != 0);
             //mBuffers->BindSceneFB(useSSAO);
-            ml_RenderState.SetPassType(useSSAO ? GBUFFER_PASS : NORMAL_PASS);
-            ml_RenderState.EnableDrawBuffers(ml_RenderState.GetPassDrawBufferCount());
-            ml_RenderState.Apply();
+            ml_RenderState->SetPassType(useSSAO ? GBUFFER_PASS : NORMAL_PASS);
+            ml_RenderState->EnableDrawBuffers(ml_RenderState->GetPassDrawBufferCount());
+            ml_RenderState->Apply();
         }
 
         auto di = HWDrawInfo::StartDrawInfo(mainvp.ViewLevel, nullptr, mainvp, nullptr);
         auto &vp = di->Viewpoint;
 
-        di->Set3DViewport(ml_RenderState);
+        di->Set3DViewport(*ml_RenderState);
         di->SetViewArea();
         auto cm =  di->SetFullbrightFlags(mainview ? vp.camera->player : nullptr);
         di->Viewpoint.FieldOfView = fov;    // Set the real FOV for the current scene (it's not necessarily the same as the global setting in r_viewpoint)
@@ -181,7 +181,7 @@ sector_t * MlRenderer::RenderViewpoint (FRenderViewpoint &mainvp, AActor * camer
         di->VPUniforms.mProjectionMatrix = eye.GetProjection(fov, ratio, fovratio);
         // Stereo mode specific viewpoint adjustment
         vp.Pos += eye.GetViewShift(vp.HWAngles.Yaw.Degrees);
-        di->SetupView(ml_RenderState, vp.Pos.X, vp.Pos.Y, vp.Pos.Z, false, false);
+        di->SetupView(*ml_RenderState, vp.Pos.X, vp.Pos.Y, vp.Pos.Z, false, false);
 
         // std::function until this can be done better in a cross-API fashion.
         di->ProcessScene(toscreen, [&](HWDrawInfo *di, int mode) {
@@ -191,17 +191,17 @@ sector_t * MlRenderer::RenderViewpoint (FRenderViewpoint &mainvp, AActor * camer
         if (mainview)
         {
             PostProcess.Clock();
-            if (toscreen) di->EndDrawScene(mainvp.sector, ml_RenderState); // do not call this for camera textures.
+            if (toscreen) di->EndDrawScene(mainvp.sector, *ml_RenderState); // do not call this for camera textures.
 
-            if (ml_RenderState.GetPassType() == GBUFFER_PASS) // Turn off ssao draw buffers
+            if (ml_RenderState->GetPassType() == GBUFFER_PASS) // Turn off ssao draw buffers
             {
-                ml_RenderState.SetPassType(NORMAL_PASS);
-                ml_RenderState.EnableDrawBuffers(1);
+                ml_RenderState->SetPassType(NORMAL_PASS);
+                ml_RenderState->EnableDrawBuffers(1);
             }
 
             //mBuffers->BlitSceneToTexture(); // Copy the resulting scene to the current post process texture
 
-            PostProcessScene(cm, [&]() { di->DrawEndScene2D(mainvp.sector, ml_RenderState); });
+            PostProcessScene(cm, [&]() { di->DrawEndScene2D(mainvp.sector, *ml_RenderState); });
             PostProcess.Unclock();
         }
         di->EndDrawInfo();

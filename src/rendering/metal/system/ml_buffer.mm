@@ -10,7 +10,8 @@ namespace MetalRenderer
 
 static inline void InvalidateBufferState()
 {
-    ml_RenderState.ResetVertexBuffer();    // force rebinding of buffers on next Apply call.
+    if (MLRenderer && MLRenderer->ml_RenderState)
+        MLRenderer->ml_RenderState->ResetVertexBuffer();    // force rebinding of buffers on next Apply call.
 }
 
 MlBuffer::MlBuffer()

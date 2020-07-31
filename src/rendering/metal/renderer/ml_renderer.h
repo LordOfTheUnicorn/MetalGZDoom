@@ -8,6 +8,7 @@
 #include "swrenderer/r_renderer.h"
 #include "matrix.h"
 #include "metal/renderer/ml_renderbuffers.h"
+#include "metal/renderer/ml_renderstate.h"
 #include "metal/system/ml_framebuffer.h"
 #include "hwrenderer/scene/hw_portal.h"
 #include "hwrenderer/dynlights/hw_shadowmap.h"
@@ -38,6 +39,7 @@ struct FRenderViewpoint;
 namespace MetalRenderer
 {
 class MetalFrameBuffer;
+class MlRenderState;
 
 struct mtlHWViewpointUniforms
 {
@@ -85,6 +87,9 @@ public:
     unsigned int mVAOID;
     unsigned int PortalQueryObject;
     unsigned int mStencilValue = 0;
+    dispatch_semaphore_t semaphore;
+    
+    MlRenderState *ml_RenderState;
     
     mtlHWViewpointUniforms *mHWViewpointUniforms;
 

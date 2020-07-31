@@ -35,7 +35,6 @@
 #include "r_data/r_translate.h"
 #include "g_levellocals.h"
 #include "metal/shaders/ml_shader.h"
-#include "metal/system/ml_framebuffer.h"
 #include "metal/system/MetalCocoaView.h"
 
 
@@ -45,7 +44,7 @@ namespace MetalRenderer
 class MlRenderBuffers;
 class MlShader;
 struct HWSectorPlane;
-
+static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
 class MlRenderState : public FRenderState
 {
     uint8_t mLastDepthClamp : 1;
@@ -123,7 +122,16 @@ public:
     id <MTLCommandQueue> commandQueue;
     id <MTLCommandBuffer> commandBuffer;
     id <MTLRenderCommandEncoder> renderCommandEncoder;
-    id<MTLBuffer> mtl_vertexBuffer;
+    int currentIndexVB = 0;
+    id<MTLBuffer> mtl_vertexBuffer [3];
+    id<MTLBuffer> mtl_indexBuffer [3];
+    id<MTLBuffer> mtl_index [3];
+    bool needDeleteVB = false;
+    bool needDeleteIB = false;
+    
+    size_t offsetVB[2];
+    size_t offsetIB[2];
+    size_t indexOffset[2];
     bool needCpyBuffer : 1;
     void CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor);
     void setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t offset = 0);
@@ -153,9 +161,9 @@ public:
                 depthStateDesc.frontFaceStencil.stencilCompareFunction    = MTLCompareFunctionEqual;
                 depthStateDesc.frontFaceStencil.stencilFailureOperation   = MTLStencilOperationKeep;
                 depthStateDesc.frontFaceStencil.depthStencilPassOperation = op2ml[i];
-                depthStateDesc.backFaceStencil.stencilCompareFunction    = MTLCompareFunctionEqual;
-                depthStateDesc.backFaceStencil.stencilFailureOperation   = MTLStencilOperationKeep;
-                depthStateDesc.backFaceStencil.depthStencilPassOperation = op2ml[i];
+                depthStateDesc.backFaceStencil.stencilCompareFunction     = MTLCompareFunctionEqual;
+                depthStateDesc.backFaceStencil.stencilFailureOperation    = MTLStencilOperationKeep;
+                depthStateDesc.backFaceStencil.depthStencilPassOperation  = op2ml[i];
                 depthStateDesc.depthCompareFunction =  df2ml[j];
                 depthStateDesc.depthWriteEnabled = YES;
                 depthState[val] = [device newDepthStencilStateWithDescriptor: depthStateDesc];
@@ -163,38 +171,39 @@ public:
                 val++;
             }
         }
+        offsetVB[0] = offsetVB[1] = 0;
+        offsetIB[0] = offsetIB[1] = 0;
+        indexOffset[0] = indexOffset[1] = 0;
+        needCpyBuffer = false;
     }
     
-    MlRenderState()
-    {
-        Reset();
-        NSError* error = nil;
-        defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/metalShaders/doomMetallib.metallib" error:&error];
-        VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
-        FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
-        AllocDesc();
-        mtl_vertexBuffer = [device newBufferWithLength:40000000 options:MTLResourceStorageModeShared];
-        commandQueue = [device newCommandQueueWithMaxCommandBufferCount:1024];
-        needCpyBuffer = true;
-        if(error)
-        {
-            NSLog(@"Failed to created pipeline state, error %@", error);
-            assert(true);
-        }
-    }
+    MlRenderState() = default;
     
     MlRenderState(MlRenderBuffers *buffers) : buffers(buffers)
     {
-        //mtl_vertexBuffer = [device newBufferWithLength:40000000 options:MTLResourceStorageModeShared];
         activeShader = new MlShader();
     }
     
-    ~MlRenderState()
+    virtual ~MlRenderState()
     {
+        if (needDeleteVB)
+        {
+            [mtl_vertexBuffer[0] release];
+            [mtl_vertexBuffer[1] release];
+            [mtl_vertexBuffer[2] release];
+        }
         
-            //[mtl_vertexBuffer release];
+        if  (needDeleteIB)
+        {
+            [mtl_indexBuffer[0] release];
+            [mtl_indexBuffer[1] release];
+            [mtl_indexBuffer[2] release];
+        }
+        
         delete activeShader;
     }
+    
+    void InitialaziState();
     
     void Reset();
 
@@ -258,7 +267,7 @@ public:
 
 };
 
-static MlRenderState ml_RenderState;
+//extern MlRenderState* ml_RenderState;
 static MetalCocoaView* m_view;
 
 }

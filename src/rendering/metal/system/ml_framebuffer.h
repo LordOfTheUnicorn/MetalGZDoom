@@ -10,8 +10,6 @@
 namespace MetalRenderer
 {
 
-static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-
 class MlRenderer;
 
 class MetalFrameBuffer : public SystemBaseFrameBuffer

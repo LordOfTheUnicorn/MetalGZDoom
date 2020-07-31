@@ -38,7 +38,7 @@
 #include "metal/renderer/ml_renderer.h"
 #include "hwrenderer/dynlights/hw_lightbuffer.h"
 #include "metal/renderer/ml_renderbuffers.h"
-#include "metal/renderer/ml_renderstate.h"
+#include "metal/renderer/ml_RenderState.h"
 #include "metal/textures/ml_hwtexture.h"
 #include "metal/system/ml_buffer.h"
 #include "hwrenderer/utility/hw_clock.h"
@@ -212,6 +212,24 @@ matrix_float4x4 matrix_perspective_left_hand(float fovyRadians, float aspect, fl
                            vector_float4{0.0f, 0.0f, (-nearZ * farZ) / farNearDiff, 0.0f}};
 }
 
+void MlRenderState::InitialaziState()
+{
+    Reset();
+    NSError* error = nil;
+    defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/metalShaders/doomMetallib.metallib" error:&error];
+    VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
+    FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
+    commandQueue = [device newCommandQueueWithMaxCommandBufferCount:1024];
+    needCpyBuffer = true;
+    if(error)
+    {
+        NSLog(@"Failed to created pipeline state, error %@", error);
+        assert(true);
+    }
+    
+    AllocDesc();
+}
+
 bool MlRenderState::ApplyShader()
 {
     static const float nulvec[] = { 0.f, 0.f, 0.f, 0.f };
@@ -281,12 +299,12 @@ bool MlRenderState::ApplyShader()
             assert(pipelineState);
         }
     }
-    [ml_RenderState.renderCommandEncoder setRenderPipelineState:pipelineState];
-    if (needCreateDepthState && ml_RenderState.depthWriteEnabled)
+    [renderCommandEncoder setRenderPipelineState:pipelineState];
+    if (needCreateDepthState && depthWriteEnabled)
     {
         //depthState[0] = [device newDepthStencilStateWithDescriptor: depthStateDesc];
-        //[ml_RenderState.renderCommandEncoder setDepthStencilState:  depthState[0]];
-        [ml_RenderState.renderCommandEncoder setDepthStencilState:  depthState[FindDepthIndex(depthStateDesc)]];
+        //[renderCommandEncoder setDepthStencilState:  depthState[0]];
+        [renderCommandEncoder setDepthStencilState:  depthState[FindDepthIndex(depthStateDesc)]];
     }
 
     int fogset = 0;
@@ -380,7 +398,7 @@ bool MlRenderState::ApplyShader()
     data.NormalModelMatrix = (activeShader->normalmodelmatrix.mat);
     auto fb = GetMetalFrameBuffer();
     
-    [ml_RenderState.renderCommandEncoder setVertexBytes:&data length:sizeof(data) atIndex:3];
+    [renderCommandEncoder setVertexBytes:&data length:sizeof(data) atIndex:3];
     
     int index = mLightIndex;
     // Mess alert for crappy AncientGL!
@@ -408,11 +426,11 @@ bool MlRenderState::ApplyShader()
     uniforms.uObjectColor2 = {activeShader->muObjectColor2.mBuffer.r,activeShader->muObjectColor2.mBuffer.g,activeShader->muObjectColor2.mBuffer.b,activeShader->muObjectColor2.mBuffer.a};
     uniforms.uTextureMode = activeShader->muTextureMode.val;
     
-    [ml_RenderState.renderCommandEncoder setFragmentBytes:&uniforms length:sizeof(Uniforms) atIndex:2];
+    [renderCommandEncoder setFragmentBytes:&uniforms length:sizeof(Uniforms) atIndex:2];
     
     
     if(MLRenderer->mHWViewpointUniforms != nullptr)
-        [ml_RenderState.renderCommandEncoder setVertexBytes:MLRenderer->mHWViewpointUniforms length:sizeof(mtlHWViewpointUniforms) atIndex:4];
+        [renderCommandEncoder setVertexBytes:MLRenderer->mHWViewpointUniforms length:sizeof(mtlHWViewpointUniforms) atIndex:4];
     
     
     VSUniforms VSUniform;
@@ -428,7 +446,7 @@ bool MlRenderState::ApplyShader()
     VSUniform.uGlowBottomColor = activeShader->muGlowBottomColor.val;
     VSUniform.uGradientTopPlane = activeShader->muGradientTopPlane.val;
     
-    [ml_RenderState.renderCommandEncoder setVertexBytes:&VSUniform length:sizeof(VSUniform) atIndex:5];
+    [renderCommandEncoder setVertexBytes:&VSUniform length:sizeof(VSUniform) atIndex:5];
     
     activeShader->muLightIndex.Set(index);
     return true;
@@ -442,9 +460,12 @@ void MlRenderState::ApplyBuffers()
         if (mVertexBuffer != nullptr)
         {
             MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
-            float* val = (float*)mtl_vertexBuffer.contents;
-            memcpy(val, (float*)mtlBuffer->mBuffer, mtlBuffer->Size());
-            printf("SIZE = %zu\n",  mtlBuffer->Size());
+            //float* val = (float*)mtl_vertexBuffer[currentIndexVB].contents;
+            //memcpy(val, (float*)mtlBuffer->mBuffer, mtlBuffer->Size());
+            
+            needCpyBuffer = true;
+            
+            //printf("SIZE = %zu\n",  mtlBuffer->Size());
             mCurrentVertexBuffer = mVertexBuffer;
             mCurrentVertexOffsets[0] = mVertexOffsets[0];
             mCurrentVertexOffsets[1] = mVertexOffsets[1];
@@ -453,9 +474,30 @@ void MlRenderState::ApplyBuffers()
         {
             if (mIndexBuffer)
             {
+                MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
                 MlIndexBuffer* IndxBuffer = static_cast<MlIndexBuffer*>(mIndexBuffer);
-                int* arr = (int*)(IndxBuffer->mBuffer);
+                int* arrIndexes = (int*)IndxBuffer->mBuffer;
+                float* buff = (float*)mtlBuffer->mBuffer;
+                float* mtlbuff = (float*)mtl_indexBuffer[currentIndexVB].contents;
+                int val = 0;
+                for (int i = 0; i < IndxBuffer->Size() / sizeof(int); i++)
+                {
+                    if (arrIndexes[i] > val)
+                        val = arrIndexes[i];
+                }
+                
+                memcpy((char*)mtl_indexBuffer[currentIndexVB].contents +    offsetIB[1], mtlBuffer->mBuffer,  mtlBuffer->mStride * (val + 1));
+                memcpy((char*)mtl_index[currentIndexVB].contents       + indexOffset[1], IndxBuffer->mBuffer, mIndexBuffer->Size());
+                
+                //printf("REALLY SIZE = %lu\n", (mtlBuffer->mStride * (val + 1)));
+                //printf("offsetIB[1] = %lu\n", offsetIB[1]);
+                offsetIB[0]    = offsetIB[1];
+                indexOffset[0] = indexOffset[1];
+                //printf("offsetIB[0] = %lu\n", offsetIB[0]);
+                offsetIB[1] += mtlBuffer->mStride * (val + 1);
+                indexOffset[1] += mIndexBuffer->Size();
             }
+            //printf("Size index buffer = %lu\n", mIndexBuffer->Size());
             mCurrentIndexBuffer = mIndexBuffer;
         }
     }
@@ -471,14 +513,43 @@ void MlRenderState::Apply()
 void MlRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor)
 {
     commandBuffer = [commandQueue commandBuffer];
-    ml_RenderState.renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-    ml_RenderState.renderCommandEncoder.label = @"ml_RenderState.renderCommandEncoder";
-    [ml_RenderState.renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
-    [ml_RenderState.renderCommandEncoder setCullMode:MTLCullModeNone];
-    [ml_RenderState.renderCommandEncoder setViewport:(MTLViewport){0.0, 0.0, (double)GetMetalFrameBuffer()->GetClientWidth(), (double)GetMetalFrameBuffer()->GetClientHeight(), 0.0, 1.0 }];
+    renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+    renderCommandEncoder.label = @"renderCommandEncoder";
+    [renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
+    [renderCommandEncoder setCullMode:MTLCullModeNone];
+    [renderCommandEncoder setViewport:(MTLViewport)
+    {   0.0, 0.0,
+        (double)GetMetalFrameBuffer()->GetClientWidth(), (double)GetMetalFrameBuffer()->GetClientHeight(),
+        0.0, 1.0 }];
     //CreateFanToTrisIndexBuffer();
     //needSetUniforms = true;
     
+    if (mtl_vertexBuffer[0].length == 0)
+    {
+        mtl_vertexBuffer[0] = [device newBufferWithLength:100000 options:MTLResourceStorageModeShared];
+        mtl_vertexBuffer[1] = [device newBufferWithLength:100000 options:MTLResourceStorageModeShared];
+        mtl_vertexBuffer[2] = [device newBufferWithLength:100000 options:MTLResourceStorageModeShared];
+        
+        needDeleteVB = true;
+    }
+    
+    if (mtl_indexBuffer[0].length == 0)
+    {
+        mtl_indexBuffer[0] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
+        mtl_indexBuffer[1] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
+        mtl_indexBuffer[2] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
+        
+        needDeleteIB = true;
+    }
+    
+    if (mtl_index[0].length == 0)
+    {
+        mtl_index[0] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
+        mtl_index[1] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
+        mtl_index[2] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
+        
+        needDeleteIB = true;
+    }
     
     if (activeShader == nullptr)
     {
@@ -515,17 +586,22 @@ bool MlRenderState::VertexBufferAttributeWasChange(const MLVertexBufferAttribute
 
 void MlRenderState::setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t offset /*= 0*/)
 {
-    [ml_RenderState.renderCommandEncoder setVertexBuffer:buffer offset:offset atIndex:index];
+    [renderCommandEncoder setVertexBuffer:buffer offset:offset atIndex:index];
 }
 
 void MlRenderState::EndFrame()
 {
     if (MLRenderer->mScreenBuffers->mDrawable)
-            [commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
+        [commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
     
-    [ml_RenderState.renderCommandEncoder endEncoding];
+    [renderCommandEncoder endEncoding];
     [commandBuffer commit];
-    printf("EndFrame\n");
+    //[commandBuffer waitUntilCompleted];
+    currentIndexVB = currentIndexVB == 2 ? 0 : currentIndexVB + 1;
+    offsetVB[0] = offsetVB[1] = 0;
+    offsetIB[0] = offsetIB[1] = 0;
+    indexOffset[0] = indexOffset[1] = 0;
+    //printf("EndFrame\n");
     needCpyBuffer = true;
 }
 
@@ -568,13 +644,13 @@ void MlRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translation
     int numLayers = mat->GetLayers();
     auto base = static_cast<MlHardwareTexture*>(mat->GetLayer(0, translation));
 
-    if (base->BindOrCreate(tex, tex->GetID().GetIndex(), clampmode, translation, flags, ml_RenderState.renderCommandEncoder))
+    if (base->BindOrCreate(tex, tex->GetID().GetIndex(), clampmode, translation, flags, renderCommandEncoder))
     {
         for (int i = 1; i<numLayers; i++)
         {
             FTexture *layer;
             auto systex = static_cast<MlHardwareTexture*>(mat->GetLayer(i, 0, &layer));
-            systex->BindOrCreate(layer, i, clampmode, 0, mat->isExpanded() ? CTF_Expand : 0, ml_RenderState.renderCommandEncoder);
+            systex->BindOrCreate(layer, i, clampmode, 0, mat->isExpanded() ? CTF_Expand : 0, renderCommandEncoder);
             maxbound = i;
         }
     }
@@ -635,32 +711,42 @@ static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine,
 
 void MlRenderState::Draw(int dt, int index, int count, bool apply)
 {
-    float* val = (float*)mtl_vertexBuffer.contents;
-    MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
-    float* vertexBuffer = (float*)mtlBuffer->mBuffer;
     if (apply)
     {
         Apply();
     }
     
     drawcalls.Clock();
+    MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
     float* buffer = &(((float*)(mtlBuffer->mBuffer))[(mtlBuffer->mStride * index) / 4]);
+    
+    //printf("Draw = %lu\n", mtlBuffer->mStride * count);
+    
     if (dt == 3)
     {
-        //MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
-        //[ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:mtlBuffer->mStride * index atIndex:0];
-        [ml_RenderState.renderCommandEncoder setVertexBytes:buffer length:count * mtlBuffer->mStride atIndex:0];
-        [ml_RenderState.renderCommandEncoder drawIndexedPrimitives:dt2ml[dt] indexCount:(count - 2) * 3 indexType:MTLIndexTypeUInt32 indexBuffer:ml_RenderState.fanIndexBuffer indexBufferOffset:0];
+        [renderCommandEncoder setVertexBytes:buffer length:count * mtlBuffer->mStride atIndex:0];
+        [renderCommandEncoder drawIndexedPrimitives:dt2ml[dt]
+                                         indexCount:(count - 2) * 3
+                                          indexType:MTLIndexTypeUInt32
+                                        indexBuffer:fanIndexBuffer indexBufferOffset:0];
     }
     else
     {
-        id<MTLBuffer> buff = [device newBufferWithBytes:buffer length:count * mtlBuffer->mStride options:MTLResourceStorageModeShared];
-        [ml_RenderState.renderCommandEncoder setVertexBuffer:/*mtl_vertexBuffer*/buff offset:0 atIndex:0];
-        [ml_RenderState.renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:/*index*/0 vertexCount:count];
-        [buff release];
+        memcpy((char*)mtl_vertexBuffer[currentIndexVB].contents + offsetVB[1],
+               (char*)mtlBuffer->mBuffer + mtlBuffer->mStride * index,
+               mtlBuffer->mStride * count);
+        
+        [renderCommandEncoder setVertexBuffer:mtl_vertexBuffer[currentIndexVB]
+                                                      offset:offsetVB[1]
+                                                     atIndex:0];
+        
+        //printf("REALLY SIZE = %lu\n", (mtlBuffer->mStride * count));
+        //printf("offsetVB[1] = %lu\n", offsetVB[1]);
+        offsetVB[1] += mtlBuffer->mStride * count;
+        [renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:/*index*/0 vertexCount:count];
     }
     
-    [ml_RenderState.renderCommandEncoder popDebugGroup];
+    [renderCommandEncoder popDebugGroup];
     
     drawcalls.Unclock();
 }
@@ -674,7 +760,7 @@ void MlRenderState::CreateFanToTrisIndexBuffer()
         data.Push(i - 1);
         data.Push(i);
     }
-    ml_RenderState.fanIndexBuffer = [device newBufferWithBytes:data.Data() length:sizeof(uint32_t) * data.Size() options:MTLResourceStorageModeShared];
+    fanIndexBuffer = [device newBufferWithBytes:data.Data() length:sizeof(uint32_t) * data.Size() options:MTLResourceStorageModeShared];
 }
 
 void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
@@ -684,14 +770,33 @@ void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
         Apply();
     }
     drawcalls.Clock();
-    MlIndexBuffer*  IndexBuffer    = static_cast<MlIndexBuffer*>(mIndexBuffer);
-    id<MTLBuffer>   indexBuffer    = [device newBufferWithBytes:(float*)IndexBuffer->mBuffer  length:IndexBuffer->Size()  options:MTLResourceStorageModeShared];
+    //MlIndexBuffer*  IndexBuffer    = static_cast<MlIndexBuffer*>(mIndexBuffer);
+    //id<MTLBuffer>   indexBuffer    = [device newBufferWithBytes:(float*)IndexBuffer->mBuffer  length:IndexBuffer->Size()  options:MTLResourceStorageModeShared];
     
-    [ml_RenderState.renderCommandEncoder setVertexBuffer:mtl_vertexBuffer offset:0 atIndex:0];
-    [ml_RenderState.renderCommandEncoder drawIndexedPrimitives:dt2ml[dt] indexCount:count indexType:MTLIndexTypeUInt32 indexBuffer:indexBuffer indexBufferOffset:(index * sizeof(uint32_t))];
-    [ml_RenderState.renderCommandEncoder popDebugGroup];
+    //int *val = (int*)IndexBuffer->mBuffer;
     
-    [indexBuffer release];
+    MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+    
+    
+    [renderCommandEncoder setVertexBuffer:mtl_indexBuffer[currentIndexVB]
+                                   offset:offsetIB[0]
+                                  atIndex:0];
+    
+    
+    [renderCommandEncoder drawIndexedPrimitives:dt2ml[dt]
+                                     indexCount:count
+                                      indexType:MTLIndexTypeUInt32
+                                    indexBuffer:mtl_index[currentIndexVB]
+                              indexBufferOffset:(index * sizeof(uint32_t)) + indexOffset[0]];
+    [renderCommandEncoder popDebugGroup];
+    
+    //[indexBuffer release];
+    //if (needCpyBuffer)
+    //{
+    //    offsetVB[1] += mtlBuffer->mStride * count;
+    //    needCpyBuffer = false;
+    //}
+    
 
     drawcalls.Unclock();
 }
@@ -700,14 +805,14 @@ void MlRenderState::SetDepthMask(bool on)
 {
     if(!on)
     {
-        //depthStateDesc.depthWriteEnabled = on;
-        //depthStateDesc.depthCompareFunction = MTLCompareFunctionNever;
+        //depthStateDesc.depthWriteEnabled                          = on;
+        //depthStateDesc.depthCompareFunction                       = MTLCompareFunctionNever;
         //depthStateDesc.frontFaceStencil.stencilCompareFunction    = MTLCompareFunctionNever;
         //depthStateDesc.frontFaceStencil.stencilFailureOperation   = MTLStencilOperationZero;
         //depthStateDesc.frontFaceStencil.depthStencilPassOperation = MTLStencilOperationZero;
-        //depthStateDesc.backFaceStencil.stencilCompareFunction    = MTLCompareFunctionNever;
-        //depthStateDesc.backFaceStencil.stencilFailureOperation   = MTLStencilOperationZero;
-        //depthStateDesc.backFaceStencil.depthStencilPassOperation = MTLStencilOperationZero;
+        //depthStateDesc.backFaceStencil.stencilCompareFunction     = MTLCompareFunctionNever;
+        //depthStateDesc.backFaceStencil.stencilFailureOperation    = MTLStencilOperationZero;
+        //depthStateDesc.backFaceStencil.depthStencilPassOperation  = MTLStencilOperationZero;
     }
 }
 
@@ -742,7 +847,7 @@ void MlRenderState::SetStencil(int offs, int op, int flags = -1)
     depthStateDesc.backFaceStencil.depthStencilPassOperation = op2ml[op];
     
     
-    [ml_RenderState.renderCommandEncoder setStencilReferenceValue:screen->stencilValue + offs ];
+    [renderCommandEncoder setStencilReferenceValue:screen->stencilValue + offs ];
     needCreateDepthState = true;
     
     //MLRenderer->loadDepthStencil = true;
@@ -841,12 +946,12 @@ void MlRenderState::SetViewport(int x, int y, int w, int h)
     m_Viewport.znear = 0.0f;
     m_Viewport.zfar = 1.0f;
     
-    [ml_RenderState.renderCommandEncoder setViewport:m_Viewport];
+    [renderCommandEncoder setViewport:m_Viewport];
 }
 
 void MlRenderState::EnableDepthTest(bool on)
 {
-    ml_RenderState.depthWriteEnabled = on;
+    depthWriteEnabled = on;
 }
 
 void MlRenderState::EnableMultisampling(bool on)

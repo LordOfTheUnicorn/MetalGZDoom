@@ -42,7 +42,7 @@ void MetalFrameBuffer::Draw2D()
 {
     if (MLRenderer != nullptr)
     {
-        ::Draw2D(&m2DDrawer, ml_RenderState);
+        ::Draw2D(&m2DDrawer, *(MLRenderer->ml_RenderState));
     }
 }
 
@@ -54,6 +54,7 @@ void MetalFrameBuffer::BeginFrame()
         MLRenderer->BeginFrame();
         MetalCocoaView* const window = GetMacWindow();
         //printf("getDrawable\n");
+        dispatch_semaphore_wait(MLRenderer->semaphore, DISPATCH_TIME_FOREVER);
         MLRenderer->mScreenBuffers->mDrawable = [window getDrawable];
         //printf("gotDrawable\n");
         
@@ -82,13 +83,16 @@ void MetalFrameBuffer::BeginFrame()
             renderPassDescriptor.renderTargetWidth = 1440;//fb->GetClientWidth();
             renderPassDescriptor.renderTargetHeight = 900;//fb->GetClientHeight();
             renderPassDescriptor.defaultRasterSampleCount = 1;
-            //float* val = (float*)malloc(40000000);
-            //ml_RenderState.mtl_vertexBuffer = [device newBufferWithBytes:val length:sizeof(*val) options:MTLResourceStorageModeShared];
-            //free(val);
+    
             needCreateRenderState = false;
         }
-        ml_RenderState.CreateRenderState(renderPassDescriptor);
         
+        MLRenderer->ml_RenderState->CreateRenderState(renderPassDescriptor);
+        
+        [MLRenderer->ml_RenderState->commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer)
+        {
+            dispatch_semaphore_signal(MLRenderer->semaphore);
+        }];
     }
 }
 
@@ -178,7 +182,7 @@ void MetalFrameBuffer::Update()
     MLRenderer->Flush();
     Flush3D.Unclock();
     //Swap();
-    ml_RenderState.EndFrame();
+    MLRenderer->ml_RenderState->EndFrame();
     Super::Update();
 }
 

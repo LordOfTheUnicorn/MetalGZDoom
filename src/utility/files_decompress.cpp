@@ -590,7 +590,7 @@ public:
 		}
 		while(AvailOut && Stream.State != STREAM_FINAL);
 
-		assert(AvailOut == 0);
+		//assert(AvailOut == 0);
 		return (long)(Out - (uint8_t*)buffer);
 	}
 };

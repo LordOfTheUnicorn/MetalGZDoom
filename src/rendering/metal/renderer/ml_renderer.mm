@@ -45,7 +45,7 @@
 #include "hwrenderer/utility/hw_cvars.h"
 //#include "gl/system/gl_debug.h"
 #include "metal/renderer/ml_renderer.h"
-#include "metal/renderer/ml_renderstate.h"
+#include "metal/renderer/ml_RenderState.h"
 #include "metal/renderer/ml_renderbuffers.h"
 #include "metal/shaders/ml_shader.h"
 #include "metal/textures/ml_hwtexture.h"
@@ -95,8 +95,12 @@ namespace MetalRenderer
 MlRenderer::MlRenderer(MetalFrameBuffer *fb)
 {
     framebuffer = fb;
+    ml_RenderState = new MlRenderState();
+    if (ml_RenderState)
+        ml_RenderState->InitialaziState();
     mHWViewpointUniforms = new mtlHWViewpointUniforms();
     loadDepthStencil = false;
+    semaphore = dispatch_semaphore_create(3);
 }
 
 void MlRenderer::Initialize(int width, int height, id<MTLDevice> device)
@@ -157,6 +161,9 @@ MlRenderer::~MlRenderer()
     
     //if (mShadowMapShader)
     //    delete mShadowMapShader;
+    
+    if (ml_RenderState)
+        delete ml_RenderState;
 }
 
 //===========================================================================
@@ -249,7 +256,7 @@ void MlRenderer::UpdateShadowMap()
 
 sector_t *MlRenderer::RenderView(player_t* player)
 {
-    ml_RenderState.SetVertexBuffer(screen->mVertexData);
+    ml_RenderState->SetVertexBuffer(screen->mVertexData);
     screen->mVertexData->Reset();
     sector_t *retsec;
 
@@ -283,7 +290,7 @@ sector_t *MlRenderer::RenderView(player_t* player)
         NoInterpolateView = false;
 
         // Shader start time does not need to be handled per level. Just use the one from the camera to render from.
-        ml_RenderState.CheckTimer(player->camera->Level->ShaderStartTime);
+        ml_RenderState->CheckTimer(player->camera->Level->ShaderStartTime);
         // prepare all camera textures that have been used in the last frame.
         // This must be done for all levels, not just the primary one!
         for (auto Level : AllLevels())
@@ -492,7 +499,7 @@ void MlRenderer::WriteSavePic(player_t *player, FileWriter *file, int width, int
     mBuffers = mSaveBuffers;
     
     hw_ClearFakeFlat();
-    ml_RenderState.SetVertexBuffer(screen->mVertexData);
+    ml_RenderState->SetVertexBuffer(screen->mVertexData);
     screen->mVertexData->Reset();
     screen->mLights->Clear();
     screen->mViewpoints->Clear();
@@ -501,7 +508,7 @@ void MlRenderer::WriteSavePic(player_t *player, FileWriter *file, int width, int
     FRenderViewpoint savevp;
     sector_t *viewsector = RenderViewpoint(savevp, players[consoleplayer].camera, &bounds, r_viewpoint.FieldOfView.Degrees, 1.6f, 1.6f, true, false);
     //glDisable(GL_STENCIL_TEST);
-    ml_RenderState.SetNoSoftLightLevel();
+    ml_RenderState->SetNoSoftLightLevel();
     CopyToBackbuffer(&bounds, false);
     
     // strictly speaking not needed as the glReadPixels should block until the scene is rendered, but this is to safeguard against shitty drivers
