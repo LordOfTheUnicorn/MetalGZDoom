@@ -68,7 +68,6 @@
 
 EXTERN_CVAR(Int, screenblocks)
 EXTERN_CVAR(Bool, cl_capfps)
-CVAR(Int, ml_dither_bpc, 0, CVAR_ARCHIVE | CVAR_GLOBALCONFIG | CVAR_NOINITCALL)
 
 extern bool NoInterpolateView;
 extern bool vid_hdr_active;
@@ -380,58 +379,18 @@ void MlRenderer::RenderTextureView(FCanvasTexture *tex, AActor *Viewpoint, doubl
 // Render the view to a savegame picture
 //
 //===========================================================================
-void MlRenderer::CopyToBackbuffer(const IntRect *bounds, bool applyGamma)
+
+void MlRenderer::PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D)
 {
-    screen->Draw2D();    // draw all pending 2D stuff before copying the buffer
-    screen->Clear2D();
+    int sceneWidth = mBuffers->GetSceneWidth();
+    int sceneHeight = mBuffers->GetSceneHeight();
 
-    MlRenderState renderstate(mBuffers);
-    //hw_postprocess.customShaders.Run(&renderstate, "screen");
+    MLPPRenderState renderstate(mBuffers);
 
-    //FGLPostProcessState savedState;
-    //savedState.SaveTextureBindings(2);
-
-    IntRect box;
-    if (bounds)
-    {
-        box = *bounds;
-    }
-    else
-    {
-        //ClearBorders();
-        box = screen->mOutputLetterbox;
-    }
-    
-    //mBuffers->BindCurrentTexture(0);
-    DrawPresentTexture(box, applyGamma);
-}
-
-void MlRenderer::Flush()
-{
-    //auto vrmode = VRMode::GetVRMode(true);
-    //if (vrmode->mEyeCount == 1)
-    //{
-        CopyToBackbuffer(nullptr, true);
-    //}
-    //else
-    //{
-        // Render 2D to eye textures
-        //int eyeCount = vrmode->mEyeCount;
-        //for (int eye_ix = 0; eye_ix < eyeCount; ++eye_ix)
-        //{
-        //    screen->Draw2D();
-        //    if (eyeCount - eye_ix > 1)
-        //        mBuffers->NextEye(eyeCount);
-        //}
-        //screen->Clear2D();
-
-        //FGLPostProcessState savedState;
-        //FGLDebug::PushGroup("PresentEyes");
-        // Note: This here is the ONLY place in the entire engine where the OpenGL dependent parts of the Stereo3D code need to be dealt with.
-        // There's absolutely no need to create a overly complex class hierarchy for just this.
-        //PresentStereo();
-        //FGLDebug::PopGroup();
-    //}
+    hw_postprocess.Pass1(&renderstate, fixedcm, sceneWidth, sceneHeight);
+    //mBuffers->BindCurrentFB();
+    afterBloomDrawEndScene2D();
+    hw_postprocess.Pass2(&renderstate, fixedcm, sceneWidth, sceneHeight);
 }
 
 void MlRenderer::RenderScreenQuad()
@@ -440,43 +399,6 @@ void MlRenderer::RenderScreenQuad()
     //buffer->Bind(nullptr);
     //glDrawArrays(GL_TRIANGLE_STRIP, FFlatVertexBuffer::PRESENT_INDEX, 4);
 }
-
-void MlRenderer::DrawPresentTexture(const IntRect &box, bool applyGamma)
-{
-    if (!applyGamma || framebuffer->IsHWGammaActive())
-    {
-        mPresentShader->InvGamma = 1.0f;
-        mPresentShader->Contrast = 1.0f;
-        mPresentShader->Brightness = 0.0f;
-        mPresentShader->Saturation = 1.0f;
-    }
-    else
-    {
-        mPresentShader->InvGamma = 1.0f / clamp<float>(Gamma, 0.1f, 4.f);
-        mPresentShader->Contrast = clamp<float>(vid_contrast, 0.1f, 3.f);
-        mPresentShader->Brightness = clamp<float>(vid_brightness, -0.8f, 0.8f);
-        mPresentShader->Saturation = clamp<float>(vid_saturation, -15.0f, 15.f);
-        mPresentShader->GrayFormula = static_cast<int>(gl_satformula);
-    }
-    
-    if (vid_hdr_active && framebuffer->IsFullscreen())
-    {
-        // Full screen exclusive mode treats a rgba16f frame buffer as linear.
-        // It probably will eventually in desktop mode too, but the DWM doesn't seem to support that.
-        mPresentShader->HdrMode = 1;
-        mPresentShader->ColorScale = (ml_dither_bpc == -1) ? 1023.0f : (float)((1 << ml_dither_bpc) - 1);
-    }
-    else
-    {
-        mPresentShader->HdrMode = 0;
-        mPresentShader->ColorScale = (ml_dither_bpc == -1) ? 255.0f : (float)((1 << ml_dither_bpc) - 1);
-    }
-    
-    mPresentShader->Scale = { screen->mScreenViewport.width / (float)mBuffers->GetWidth(), screen->mScreenViewport.height / (float)mBuffers->GetHeight() };
-    mPresentShader->Offset = { 0.0f, 0.0f };
-    RenderScreenQuad();
-}
-
 
 void MetalFrameBuffer::CleanForRestart()
 {

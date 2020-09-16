@@ -487,7 +487,7 @@ void MlRenderState::ApplyBuffers()
                 }
                 
                 memcpy((char*)mtl_indexBuffer[currentIndexVB].contents +    offsetIB[1], mtlBuffer->mBuffer,  mtlBuffer->mStride * (val + 1));
-                memcpy((char*)mtl_index[currentIndexVB].contents       + indexOffset[1], IndxBuffer->mBuffer, mIndexBuffer->Size());
+                memcpy((char*)mtl_index[currentIndexVB].contents       +    indexOffset[1], IndxBuffer->mBuffer, mIndexBuffer->Size());
                 
                 //printf("REALLY SIZE = %lu\n", (mtlBuffer->mStride * (val + 1)));
                 //printf("offsetIB[1] = %lu\n", offsetIB[1]);

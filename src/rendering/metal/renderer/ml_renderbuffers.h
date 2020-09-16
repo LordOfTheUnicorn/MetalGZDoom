@@ -2,6 +2,7 @@
 
 #include "metal/textures/ml_samplers.h"
 #include "metal/textures/ml_hwtexture.h"
+#include "hwrenderer/postprocessing/hw_postprocess.h"
 #include <QuartzCore/QuartzCore.h>
 
 namespace MetalRenderer
@@ -23,7 +24,7 @@ public:
     int GetSceneHeight() const { return mSceneHeight; }
     int GetSceneSamples() const { return mSamples; }
     int & CurrentEye() { return mCurrentEye; }
-    int NextEye(int eyeCount);
+    int NextEye(int eyeCount) {raise(SIGTRAP);};
     void Setup(int width, int height, int sceneWidth, int sceneHeight);
     void BindDitherTexture(int texunit);
     id<MTLTexture> CreateRenderBuffer(const char *name, MTLPixelFormat format, int width, int height, const void* data = nullptr);
@@ -66,8 +67,8 @@ private:
     void CreateSceneDepthStencil(int width, int height);// VkSampleCountFlagBits samples);
     void CreateSceneFog(int width, int height) {};// VkSampleCountFlagBits samples);
     void CreateSceneNormal(int width, int height) {};// VkSampleCountFlagBits samples);
-    void CreateShadowmap() {};
-    int GetBestSampleCount() {};
+    void CreateShadowmap() {raise(SIGTRAP);};
+    int GetBestSampleCount() {raise(SIGTRAP);};
     id<MTLTexture> Create2DTexture(const char *name, MTLPixelFormat format, int width, int height, const void* data = nullptr);
     id<MTLTexture> Create2DMultisampleTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations);
     id<MTLTexture> CreateFrameBuffer(const char *name, id<MTLTexture> colorbuffer);
@@ -90,5 +91,21 @@ private:
     //id<CAMetalDrawable> m_Drawable;
     
     id<MTLTexture> mDitherTexture;
+};
+
+class MLPPRenderState : public PPRenderState
+{
+public:
+    MLPPRenderState(MlRenderBuffers *buffers) : buffers(buffers) { }
+
+    void PushGroup(const FString &name) override {raise(SIGTRAP);};
+    void PopGroup() override {raise(SIGTRAP);};
+    void Draw() override {raise(SIGTRAP);};
+
+private:
+    id<MTLTexture> *GetMLTexture(PPTexture *texture);
+    //FShaderProgram *GetGLShader(PPShader *shader);
+
+    MlRenderBuffers *buffers;
 };
 }

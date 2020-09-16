@@ -139,6 +139,11 @@ void MetalFrameBuffer::SetVSync(bool vsync)
     cur_vsync = vsync;
 }
 
+void MetalFrameBuffer::PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D)
+{
+    MLRenderer->PostProcessScene(fixedcm, afterBloomDrawEndScene2D);
+}
+
 IDataBuffer *MetalFrameBuffer::CreateDataBuffer(int bindingpoint, bool ssbo, bool needsresize)
 {
     auto buffer = new MlDataBuffer();

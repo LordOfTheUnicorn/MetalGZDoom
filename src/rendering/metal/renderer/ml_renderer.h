@@ -118,10 +118,10 @@ public:
 
     void ResetSWScene();
 
-    void PresentStereo();
+    void PresentStereo() {raise(SIGTRAP);};
     void RenderScreenQuad();
-    void PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D){};
-    void AmbientOccludeScene(float m5){};
+    void PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D);
+    void AmbientOccludeScene(float m5);
     void ClearTonemapPalette();
     void BlurScene(float gameinfobluramount);
     void CopyToBackbuffer(const IntRect *bounds, bool applyGamma);

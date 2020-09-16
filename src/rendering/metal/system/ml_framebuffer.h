@@ -72,7 +72,7 @@ public:
     //virtual TArray<uint8_t> GetScreenshotBuffer(int &pitch, ESSType &color_type, float &gamma) override;
     //
     void Draw2D() override;
-    //void PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D) override;
+    void PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D) override;
     //
     //FTexture *WipeStartScreen() override;
     //FTexture *WipeEndScreen() override;
