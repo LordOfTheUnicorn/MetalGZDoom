@@ -46,19 +46,19 @@ public:
     id<MTLTexture> Shadowmap;
    // MlSamplerManager ShadowmapSampler;
     // Buffers for the scene
-       id<MTLTexture> mSceneMultisampleTex;
-       id<MTLTexture> mSceneDepthStencilTex;
-       id<MTLTexture> mSceneDepthTex;
-       id<MTLTexture> mSceneFogTex;
-       id<MTLTexture> mSceneNormalTex;
-       id<MTLTexture> mSceneMultisampleBuf;
-       id<MTLTexture> mSceneDepthStencilBuf;
-       id<MTLTexture> mSceneFogBuf;
-       id<MTLTexture> mSceneNormalBuf;
-       id<MTLTexture> mSceneFB;
-       id<CAMetalDrawable> mDrawable;
-       id<MTLTexture> mSceneDataFB;
-       bool mSceneUsesTextures = false;
+    id<MTLTexture> mSceneMultisampleTex;
+    id<MTLTexture> mSceneDepthStencilTex;
+    id<MTLTexture> mSceneDepthTex;
+    id<MTLTexture> mSceneFogTex;
+    id<MTLTexture> mSceneNormalTex;
+    id<MTLTexture> mSceneMultisampleBuf;
+    id<MTLTexture> mSceneDepthStencilBuf;
+    id<MTLTexture> mSceneFogBuf;
+    id<MTLTexture> mSceneNormalBuf;
+    id<MTLTexture> mSceneFB;
+    id<CAMetalDrawable> mDrawable;
+    id<MTLTexture> mSceneDataFB;
+    bool mSceneUsesTextures = false;
 
 private:
     void CreatePipeline(int width, int height);
@@ -68,7 +68,7 @@ private:
     void CreateSceneFog(int width, int height) {};// VkSampleCountFlagBits samples);
     void CreateSceneNormal(int width, int height) {};// VkSampleCountFlagBits samples);
     void CreateShadowmap() {raise(SIGTRAP);};
-    int GetBestSampleCount() {raise(SIGTRAP);};
+    int  GetBestSampleCount() {raise(SIGTRAP);};
     id<MTLTexture> Create2DTexture(const char *name, MTLPixelFormat format, int width, int height, const void* data = nullptr);
     id<MTLTexture> Create2DMultisampleTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations);
     id<MTLTexture> CreateFrameBuffer(const char *name, id<MTLTexture> colorbuffer);
@@ -100,7 +100,7 @@ public:
 
     void PushGroup(const FString &name) override {raise(SIGTRAP);};
     void PopGroup() override {raise(SIGTRAP);};
-    void Draw() override {raise(SIGTRAP);};
+    void Draw() override;
 
 private:
     id<MTLTexture> *GetMLTexture(PPTexture *texture);

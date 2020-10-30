@@ -236,7 +236,7 @@ bool MlRenderState::ApplyShader()
     activeShader = new MlShader();
     MlVertexBuffer* vertexBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
     
-    if (vertexBuffer == nullptr || VertexBufferAttributeWasChange(vertexBuffer->mAttributeInfo))
+    if (vertexBuffer == nullptr || VertexBufferAttributeWasChange(vertexBuffer->mAttributeInfo) || !colorMaskUpdated)
     {
         bool isVertexBufferNull = vertexBuffer == nullptr;
         if (!isVertexBufferNull)
@@ -290,6 +290,8 @@ bool MlRenderState::ApplyShader()
         renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
 
         renderPipelineDesc.colorAttachments[0].blendingEnabled = YES;
+        renderPipelineDesc.colorAttachments[0].writeMask = colorMask;
+        colorMaskUpdated = true;
         
         pipelineState = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc  error:&error];
             
@@ -300,7 +302,7 @@ bool MlRenderState::ApplyShader()
         }
     }
     [renderCommandEncoder setRenderPipelineState:pipelineState];
-    if (needCreateDepthState && depthWriteEnabled)
+    if (needCreateDepthState && 1)
     {
         //depthState[0] = [device newDepthStencilStateWithDescriptor: depthStateDesc];
         //[renderCommandEncoder setDepthStencilState:  depthState[0]];
@@ -508,6 +510,7 @@ void MlRenderState::Apply()
     ApplyShader();
     ApplyState();
     ApplyBuffers();
+    MLRenderer->mSamplerManager->BindToShader(renderCommandEncoder);
 }
 
 void MlRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor)
@@ -745,7 +748,6 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
         offsetVB[1] += mtlBuffer->mStride * count;
         [renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:/*index*/0 vertexCount:count];
     }
-    
     [renderCommandEncoder popDebugGroup];
     
     drawcalls.Unclock();
@@ -832,7 +834,17 @@ void MlRenderState::SetDepthRange(float min, float max)
 
 void MlRenderState::SetColorMask(bool r, bool g, bool b, bool a)
 {
-    //glColorMask(r, g, b, a);
+    colorMask = 0;
+    if (r)
+        colorMask |= MTLColorWriteMaskRed;
+    if (g)
+        colorMask |= MTLColorWriteMaskGreen;
+    if (b)
+        colorMask |= MTLColorWriteMaskBlue;
+    if (a)
+        colorMask |= MTLColorWriteMaskAlpha;
+    
+    colorMaskUpdated = false;
 }
 
 void MlRenderState::SetStencil(int offs, int op, int flags = -1)
@@ -854,12 +866,18 @@ void MlRenderState::SetStencil(int offs, int op, int flags = -1)
     //glStencilFunc(GL_EQUAL, screen->stencilValue + offs, ~0);        // draw sky into stencil
     //glStencilOp(GL_KEEP, GL_KEEP, op2gl[op]);        // this stage doesn't modify the stencil
 
-    //if (flags != -1)
-    //{
-    //    bool cmon = !(flags & SF_ColorMaskOff);
-    //    glColorMask(cmon, cmon, cmon, cmon);                        // don't write to the graphics buffer
-    //    glDepthMask(!(flags & SF_DepthMaskOff));
-    //}
+    if (flags != -1)
+    {
+        bool cmon = !(flags & SF_ColorMaskOff);
+        if (cmon)
+            colorMask = MTLColorWriteMaskAll;
+        else
+            colorMask = MTLColorWriteMaskNone;
+        
+        colorMaskUpdated = false;
+        //glColorMask(cmon, cmon, cmon, cmon);                        // don't write to the graphics buffer
+        //glDepthMask(!(flags & SF_DepthMaskOff));
+    }
 }
 
 void MlRenderState::ToggleState(int state, bool on)
@@ -900,6 +918,7 @@ void MlRenderState::Clear(int targets)
 {
     // This always clears to default values.
     int gltarget = 0;
+    colorMask = MTLColorWriteMaskAll;
     if (targets)
     {
         

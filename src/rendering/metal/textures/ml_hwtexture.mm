@@ -42,14 +42,15 @@
 
 namespace MetalRenderer
 {
-TexFilter texFilter[]={
-    {MTLSamplerMinMagFilterNearest, MTLSamplerMinMagFilterNearest, false},
-    {MTLSamplerMipFilterNearest, MTLSamplerMinMagFilterNearest,    true},
-    {MTLSamplerMinMagFilterLinear,  MTLSamplerMinMagFilterLinear,  false},
-    {MTLSamplerMipFilterLinear,  MTLSamplerMinMagFilterLinear,  true},
-    {MTLSamplerMipFilterLinear,  MTLSamplerMinMagFilterLinear,  true},
-    {MTLSamplerMipFilterNearest, MTLSamplerMinMagFilterNearest, true},
-    {MTLSamplerMipFilterLinear,  MTLSamplerMinMagFilterNearest, true},
+MetalTexFilter texFilter[]=
+{
+    {MTLSamplerMinMagFilterNearest,   MTLSamplerMinMagFilterNearest,    false},
+    {MTLSamplerMinMagFilterNearest,   MTLSamplerMinMagFilterNearest,    true },
+    {MTLSamplerMinMagFilterLinear,    MTLSamplerMinMagFilterLinear,     false},
+    {MTLSamplerMinMagFilterLinear,    MTLSamplerMinMagFilterLinear,     true },
+    {MTLSamplerMinMagFilterLinear,    MTLSamplerMinMagFilterLinear,     true },
+    {MTLSamplerMinMagFilterNearest,   MTLSamplerMinMagFilterNearest,    true },
+    {MTLSamplerMinMagFilterLinear,    MTLSamplerMinMagFilterNearest,    true },
 };
 
 int TexFormat[]={
@@ -313,13 +314,12 @@ bool MlHardwareTexture::BindOrCreate(FTexture *tex, int texunit, int clampmode, 
     FImageSource * t = tex->GetImage();
     
     
-    //MLRenderer->mSamplerManager->Bind(texunit, clampmode, 255);
+    MLRenderer->mSamplerManager->Bind(texunit, clampmode, 255);
     if (encoder)
     {
-        //[encoder setFragmentSamplerState:MLRenderer->mSamplerManager->mSamplers[clampmode] atIndex:9];
         [encoder setFragmentTexture:metalState[texid].mTextures atIndex:1];
+        MLRenderer->mSamplerManager->BindToShader(encoder);
     }
-    //}
     return true;
 }
 

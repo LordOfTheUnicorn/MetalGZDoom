@@ -12,10 +12,10 @@ namespace MetalRenderer
 static const uint8_t STATE_TEXTURES_COUNT     = 16;
 static const uint8_t STATE_SAMPLERS_COUNT     = 16;
 
-struct TexFilter
+struct MetalTexFilter
 {
-    int minfilter;
-    int magfilter;
+    MTLSamplerMinMagFilter minfilter;
+    MTLSamplerMinMagFilter magfilter;
     bool mipmapping;
 } ;
 

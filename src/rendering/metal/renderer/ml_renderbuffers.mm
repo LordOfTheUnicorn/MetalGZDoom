@@ -69,9 +69,9 @@ void MlRenderBuffers::BindDitherTexture(int texunit)
              .1015625, .3515625, .2265625, .4765625, .1171875, .3671875, .2421875, .4921875,
              .8515625, .6015625, .9765625, .7265625, .8671875, .6171875, .9921875, .7421875,
         };
-        
         mDitherTexture = Create2DTexture("DitherTexture", MTLPixelFormatRG32Float, 8, 8, data);
     }
+    MLRenderer->mSamplerManager->SetRepeatAddressMode(true);
     //mDitherTexture.Bind(1, GL_NEAREST, GL_REPEAT);
 }
 
@@ -83,7 +83,6 @@ id<MTLTexture> MlRenderBuffers::Create2DTexture(const char *name, MTLPixelFormat
     desc.pixelFormat = format;
     desc.storageMode = MTLStorageModePrivate;
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
-    
     
    // printf(name);
    // printf(" is created/n");
@@ -304,6 +303,11 @@ void MlRenderBuffers::Setup(int width, int height, int sceneWidth, int sceneHeig
         mSceneHeight = 0;
         I_FatalError("Unable to create render buffers.");
     }
+}
+
+void MLPPRenderState::Draw()
+{
+    raise(SIGTRAP);
 }
 
 

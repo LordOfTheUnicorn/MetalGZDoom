@@ -19,60 +19,75 @@
 //
 //--------------------------------------------------------------------------
 //
-
+#include "c_cvars.h"
+#include "hwrenderer/utility/hw_cvars.h"
+#include "hwrenderer/textures/hw_material.h"
 #include "ml_samplers.h"
 #include "metal/renderer/ml_renderstate.h"
+#include "metal/renderer/ml_renderer.h"
 
 namespace MetalRenderer
 {
 
+MetalTexFilter Filters[] =
+{
+    {MTLSamplerMinMagFilterNearest,   MTLSamplerMinMagFilterNearest,    false},
+    {MTLSamplerMinMagFilterNearest,   MTLSamplerMinMagFilterNearest,    true },
+    {MTLSamplerMinMagFilterLinear,    MTLSamplerMinMagFilterLinear,     false},
+    {MTLSamplerMinMagFilterLinear,    MTLSamplerMinMagFilterLinear,     true },
+    {MTLSamplerMinMagFilterLinear,    MTLSamplerMinMagFilterLinear,     true },
+    {MTLSamplerMinMagFilterNearest,   MTLSamplerMinMagFilterNearest,    true },
+    {MTLSamplerMinMagFilterLinear,    MTLSamplerMinMagFilterNearest,    true },
+};
+
 MlSamplerManager::MlSamplerManager(id <MTLDevice> device)
 {
     mDevice = device;
-    Create();
+    CreateDesc();
+    SetTextureFilterMode();
+    CreateSamplers();
+    currentSampler = mSamplers[4];
+    mRepeatMode = false;
 }
 
-void MlSamplerManager::Create()
+void MlSamplerManager::CreateSamplers()
 {
-    MTLSamplerDescriptor* desc[7];
-        
-        for (int i = 0; i < 7; i++)
-        {
-            desc[i] = [MTLSamplerDescriptor new];
-        }
-        
-        desc[5].minFilter = MTLSamplerMinMagFilterNearest;
-        desc[5].magFilter = MTLSamplerMinMagFilterNearest;
-        desc[5].maxAnisotropy = 1.f;
-        desc[4].maxAnisotropy = 1.f;
-        desc[6].maxAnisotropy = 1.f;
-        
-        desc[1].sAddressMode = MTLSamplerAddressModeClampToEdge;
-        desc[2].tAddressMode = MTLSamplerAddressModeClampToEdge;
-        desc[3].sAddressMode = MTLSamplerAddressModeClampToEdge;
-        desc[3].tAddressMode = MTLSamplerAddressModeClampToEdge;
-        desc[4].sAddressMode = MTLSamplerAddressModeClampToEdge;
-        desc[4].tAddressMode = MTLSamplerAddressModeClampToEdge;
-        
-        for (int i = 0; i < 7; i++)
-        {
-            mSamplers[i] = [mDevice newSamplerStateWithDescriptor:desc[i]];
-        }
-        
-        for (int i = 0; i < 7; i++)
-        {
-            [desc[i] release];
-        }
-
-    //    for (int i = 0; i < 7; i++)
-    //    {
-    //        FString name;
-    //        name.Format("mSamplers[%d]", i);
-    //        FGLDebug::LabelObject(GL_SAMPLER, mSamplers[i], name.GetChars());
-    //    }
+    for (int i = 0; i < 7; i++)
+    {
+        mSamplers[i] = [mDevice newSamplerStateWithDescriptor:mDesc[i]];
+    }
 }
 
-void MlSamplerManager::Destroy()
+void MlSamplerManager::CreateDesc()
+{
+    for (int i = 0; i < 7; i++)
+    {
+        mDesc[i] = [MTLSamplerDescriptor new];
+    }
+    
+    mDesc[5].minFilter = MTLSamplerMinMagFilterNearest;
+    mDesc[5].magFilter = MTLSamplerMinMagFilterNearest;
+    mDesc[5].maxAnisotropy = 1.f;
+    mDesc[4].maxAnisotropy = 1.f;
+    mDesc[6].maxAnisotropy = 1.f;
+    
+    mDesc[1].sAddressMode = MTLSamplerAddressModeClampToEdge; //GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    mDesc[2].tAddressMode = MTLSamplerAddressModeClampToEdge; //GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    mDesc[3].sAddressMode = MTLSamplerAddressModeClampToEdge; //GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    mDesc[3].tAddressMode = MTLSamplerAddressModeClampToEdge; //GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    mDesc[4].sAddressMode = MTLSamplerAddressModeClampToEdge; //GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    mDesc[4].tAddressMode = MTLSamplerAddressModeClampToEdge; //GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+}
+
+void MlSamplerManager::DestroyDesc()
+{
+    for (int i = 0; i < 7; i++)
+    {
+        [mDesc[i] release];
+    }
+}
+
+void MlSamplerManager::DestroySamplers()
 {
     for (int i = 0; i < 7; i++)
     {
@@ -80,16 +95,74 @@ void MlSamplerManager::Destroy()
     }
 }
 
-void MlSamplerManager::SetTextureFilterMode()
+void MlSamplerManager::Destroy()
 {
-    Destroy();
-    Create();
+    DestroyDesc();
+    DestroySamplers();
 }
 
+void MlSamplerManager::SetTextureFilterMode()
+{
+    //DestroySamplers();
+           
+    int filter = V_IsHardwareRenderer() ? ml_texture_filter : 0;
+
+    mDesc[0].rAddressMode = MTLSamplerAddressModeRepeat; //GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    mDesc[0].tAddressMode = MTLSamplerAddressModeRepeat; //GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    mDesc[0].sAddressMode = MTLSamplerAddressModeRepeat;
+    mDesc[0].minFilter     = MTLSamplerMinMagFilterLinear;
+    mDesc[0].magFilter     = MTLSamplerMinMagFilterLinear;
+    mDesc[0].lodMinClamp = -1000.f;
+    mDesc[0].lodMaxClamp = 1000.f;
+    mDesc[0].maxAnisotropy = 8;
+    
+    mDesc[2].rAddressMode = MTLSamplerAddressModeRepeat; //GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    mDesc[2].tAddressMode = MTLSamplerAddressModeRepeat; //GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    mDesc[2].sAddressMode = MTLSamplerAddressModeRepeat;
+    mDesc[2].lodMinClamp = -1000.f;
+    mDesc[2].lodMaxClamp = 1000.f;
+    mDesc[2].minFilter     = MTLSamplerMinMagFilterLinear;
+    mDesc[2].magFilter     = MTLSamplerMinMagFilterLinear;
+    mDesc[2].maxAnisotropy = 8;
+    
+    for (int i = 1; i < 4; i++)
+    {
+        mDesc[i].minFilter     = Filters[filter].minfilter;
+        mDesc[i].magFilter     = Filters[filter].magfilter;
+        mDesc[i].maxAnisotropy = ml_texture_filter_anisotropic;
+        //glSamplerParameteri(mSamplers[i], GL_TEXTURE_MIN_FILTER, TexFilter[filter].minfilter);
+        //glSamplerParameteri(mSamplers[i], GL_TEXTURE_MAG_FILTER, TexFilter[filter].magfilter);
+        //glSamplerParameterf(mSamplers[i], GL_TEXTURE_MAX_ANISOTROPY_EXT, gl_texture_filter_anisotropic);
+    }
+    
+    mDesc[4].minFilter = Filters[filter].minfilter;
+    mDesc[4].magFilter = Filters[filter].magfilter;
+    mDesc[6].minFilter = Filters[filter].minfilter;
+    mDesc[6].magFilter = Filters[filter].magfilter;
+    //glSamplerParameteri(mSamplers[4], GL_TEXTURE_MIN_FILTER, TexFilter[filter].magfilter);
+    //glSamplerParameteri(mSamplers[4], GL_TEXTURE_MAG_FILTER, TexFilter[filter].magfilter);
+    //glSamplerParameteri(mSamplers[6], GL_TEXTURE_MIN_FILTER, TexFilter[filter].magfilter);
+    //glSamplerParameteri(mSamplers[6], GL_TEXTURE_MAG_FILTER, TexFilter[filter].magfilter);
+
+    CreateSamplers();
+}
+
+void MlSamplerManager::BindToShader(id<MTLRenderCommandEncoder> encoder)
+{
+    [encoder setFragmentSamplerState:currentSampler atIndex:3];
+}
 
 uint8_t MlSamplerManager::Bind(int texunit, int num, int lastval)
 {
-    //renderCommandEncoder
+    //printf("Bind Sampler -> %d\n", num);
+    currentSampler =  mSamplers[num];
+    mRepeatMode    = false;
+    return 255;
+}
+
+void MlSamplerManager::SetRepeatAddressMode(bool val)
+{
+    mRepeatMode = val;
 }
 
 }

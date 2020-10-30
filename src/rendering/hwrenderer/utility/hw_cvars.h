@@ -12,6 +12,8 @@ EXTERN_CVAR(Float, gl_texture_filter_anisotropic)
 EXTERN_CVAR(Int, gl_texture_format)
 EXTERN_CVAR(Bool, gl_texture_usehires)
 EXTERN_CVAR(Bool, gl_usefb)
+EXTERN_CVAR(Int, ml_texture_filter)
+EXTERN_CVAR(Float, ml_texture_filter_anisotropic)
 
 EXTERN_CVAR(Int, gl_weaponlight)
 

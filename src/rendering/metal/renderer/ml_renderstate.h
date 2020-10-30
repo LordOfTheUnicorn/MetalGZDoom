@@ -67,6 +67,8 @@ class MlRenderState : public FRenderState
     bool needCreateDepthStare : 1;
     bool depthWriteEnabled : 1;
     int mNumDrawBuffers = 1;
+    MTLColorWriteMask colorMask = MTLColorWriteMaskAll;
+    bool colorMaskUpdated : 1;
 
     bool ApplyShader();
     void ApplyState();

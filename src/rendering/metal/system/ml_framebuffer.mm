@@ -129,6 +129,18 @@ IVertexBuffer *MetalFrameBuffer::CreateVertexBuffer()
     return new MlVertexBuffer();
 }
 
+void MetalFrameBuffer::TextureFilterChanged()
+{
+    if (MLRenderer != NULL && MLRenderer->mSamplerManager != NULL)
+        MLRenderer->mSamplerManager->SetTextureFilterMode();
+}
+
+void MetalFrameBuffer::SetTextureFilterMode()
+{
+    if (MLRenderer != nullptr && MLRenderer->mSamplerManager != nullptr)
+        MLRenderer->mSamplerManager->SetTextureFilterMode();
+}
+
 IIndexBuffer *MetalFrameBuffer::CreateIndexBuffer()
 {
     return new MlIndexBuffer();

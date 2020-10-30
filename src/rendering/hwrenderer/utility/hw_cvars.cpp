@@ -69,6 +69,11 @@ CUSTOM_CVAR(Float,gl_texture_filter_anisotropic,8.0f,CVAR_ARCHIVE|CVAR_GLOBALCON
 	screen->TextureFilterChanged();
 }
 
+CUSTOM_CVAR(Float,ml_texture_filter_anisotropic,8.0f,CVAR_ARCHIVE|CVAR_GLOBALCONFIG|CVAR_NOINITCALL)
+{
+    screen->TextureFilterChanged();
+}
+
 CCMD(gl_flush)
 {
 	TexMan.FlushAll();
@@ -78,6 +83,12 @@ CUSTOM_CVAR(Int, gl_texture_filter, 4, CVAR_ARCHIVE|CVAR_GLOBALCONFIG|CVAR_NOINI
 {
 	if (self < 0 || self > 6) self=4;
 	screen->TextureFilterChanged();
+}
+
+CUSTOM_CVAR(Int, ml_texture_filter, 4, CVAR_ARCHIVE|CVAR_GLOBALCONFIG|CVAR_NOINITCALL)
+{
+    if (self < 0 || self > 6) self=4;
+    screen->TextureFilterChanged();
 }
 
 CUSTOM_CVAR(Bool, gl_texture_usehires, true, CVAR_ARCHIVE|CVAR_NOINITCALL)

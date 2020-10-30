@@ -104,7 +104,7 @@ void MlRenderer::DrawScene(HWDrawInfo *di, int drawmode)
         di->CreateScene(false);
     }
 
-    //glDepthMask(true);
+    ml_RenderState->EnableDepthTest(true);
     if (!ml_no_skyclear)
     {
         screen->mPortalState->RenderFirstSkyPortal(recursion, di, *ml_RenderState);
