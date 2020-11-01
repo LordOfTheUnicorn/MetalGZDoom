@@ -236,7 +236,7 @@ bool MlRenderState::ApplyShader()
     activeShader = new MlShader();
     MlVertexBuffer* vertexBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
     
-    if (vertexBuffer == nullptr || VertexBufferAttributeWasChange(vertexBuffer->mAttributeInfo) || !colorMaskUpdated)
+    if (vertexBuffer == nullptr || VertexBufferAttributeWasChange(vertexBuffer->mAttributeInfo) || !updated)
     {
         bool isVertexBufferNull = vertexBuffer == nullptr;
         if (!isVertexBufferNull)
@@ -291,7 +291,7 @@ bool MlRenderState::ApplyShader()
 
         renderPipelineDesc.colorAttachments[0].blendingEnabled = YES;
         renderPipelineDesc.colorAttachments[0].writeMask = colorMask;
-        colorMaskUpdated = true;
+        updated = true;
         
         pipelineState = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc  error:&error];
             
@@ -302,10 +302,9 @@ bool MlRenderState::ApplyShader()
         }
     }
     [renderCommandEncoder setRenderPipelineState:pipelineState];
-    if (needCreateDepthState && 1)
+    //if (needCreateDepthState && 1)
     {
-        //depthState[0] = [device newDepthStencilStateWithDescriptor: depthStateDesc];
-        //[renderCommandEncoder setDepthStencilState:  depthState[0]];
+        id<MTLDepthStencilState> test = [device newDepthStencilStateWithDescriptor:depthStateDesc];
         [renderCommandEncoder setDepthStencilState:  depthState[FindDepthIndex(depthStateDesc)]];
     }
 
@@ -568,13 +567,16 @@ void MlRenderState::CopyVertexBufferAttribute(const MLVertexBufferAttribute *att
 int MlRenderState::FindDepthIndex(MTLDepthStencilDescriptor* desc)
 {
     MTLStencilOperation stencil = desc.backFaceStencil.depthStencilPassOperation;
-    MTLCompareFunction  comp    = desc.depthCompareFunction;
+    MTLCompareFunction     comp = desc.depthCompareFunction;
+    bool             writeDepth = desc.depthWriteEnabled;
     
-    for (int i = 0; i < 9; i++)
+    for (int i = 0; i < SIZE_DEPTH_DESC; i++)
     {
-        if (depthIndex[i].compareFunction == comp && depthIndex[i].stencilOperation == stencil)
+        if (depthIndex[i].compareFunction == comp && depthIndex[i].stencilOperation == stencil && depthIndex[i].writeDepth == writeDepth)
             return depthIndex[i].ind;
     }
+    
+    return -1;
 }
 
 bool MlRenderState::VertexBufferAttributeWasChange(const MLVertexBufferAttribute *attr)
@@ -844,7 +846,7 @@ void MlRenderState::SetColorMask(bool r, bool g, bool b, bool a)
     if (a)
         colorMask |= MTLColorWriteMaskAlpha;
     
-    colorMaskUpdated = false;
+    updated = false;
 }
 
 void MlRenderState::SetStencil(int offs, int op, int flags = -1)
@@ -874,7 +876,7 @@ void MlRenderState::SetStencil(int offs, int op, int flags = -1)
         else
             colorMask = MTLColorWriteMaskNone;
         
-        colorMaskUpdated = false;
+        updated = false;
         //glColorMask(cmon, cmon, cmon, cmon);                        // don't write to the graphics buffer
         //glDepthMask(!(flags & SF_DepthMaskOff));
     }
@@ -970,7 +972,8 @@ void MlRenderState::SetViewport(int x, int y, int w, int h)
 
 void MlRenderState::EnableDepthTest(bool on)
 {
-    depthWriteEnabled = on;
+    updated = false;
+    depthStateDesc.depthWriteEnabled = on;
 }
 
 void MlRenderState::EnableMultisampling(bool on)

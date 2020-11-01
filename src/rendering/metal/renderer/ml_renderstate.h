@@ -37,6 +37,7 @@
 #include "metal/shaders/ml_shader.h"
 #include "metal/system/MetalCocoaView.h"
 
+#define SIZE_DEPTH_DESC 18
 
 namespace MetalRenderer
 {
@@ -68,7 +69,7 @@ class MlRenderState : public FRenderState
     bool depthWriteEnabled : 1;
     int mNumDrawBuffers = 1;
     MTLColorWriteMask colorMask = MTLColorWriteMaskAll;
-    bool colorMaskUpdated : 1;
+    bool updated : 1;
 
     bool ApplyShader();
     void ApplyState();
@@ -97,21 +98,23 @@ class MlRenderState : public FRenderState
     
     struct DepthIndex
     {
-        DepthIndex(MTLStencilOperation stencil, MTLCompareFunction compare, int _ind)
+        DepthIndex(MTLStencilOperation _stencil, MTLCompareFunction _compare, int _ind, bool _writeDepth)
         {
-            stencilOperation = stencil;
-            compareFunction  = compare;
+            stencilOperation = _stencil;
+            compareFunction  = _compare;
             ind              = _ind;
+            writeDepth       = _writeDepth;
         }
         ~DepthIndex() = default;
         DepthIndex()  = default;
         MTLStencilOperation stencilOperation;
         MTLCompareFunction  compareFunction;
         int                 ind;
+        bool                writeDepth;
     };
     
-    DepthIndex depthIndex[9];
-    id<MTLDepthStencilState> depthState[9];
+    DepthIndex depthIndex[SIZE_DEPTH_DESC];
+    id<MTLDepthStencilState> depthState[SIZE_DEPTH_DESC];
     MTLRenderPipelineDescriptor * renderPipelineDesc;
     MTLDepthStencilDescriptor *depthStateDesc;
     MTLCompareFunction depthCompareFunc;
@@ -168,8 +171,14 @@ public:
                 depthStateDesc.backFaceStencil.depthStencilPassOperation  = op2ml[i];
                 depthStateDesc.depthCompareFunction =  df2ml[j];
                 depthStateDesc.depthWriteEnabled = YES;
+                
                 depthState[val] = [device newDepthStencilStateWithDescriptor: depthStateDesc];
-                depthIndex[val] = {op2ml[i], df2ml[j], val};
+                depthIndex[val] = {op2ml[i], df2ml[j], val, true};
+                
+                depthStateDesc.depthWriteEnabled = NO;
+                val++;
+                depthState[val] = [device newDepthStencilStateWithDescriptor: depthStateDesc];
+                depthIndex[val] = {op2ml[i], df2ml[j], val, false};
                 val++;
             }
         }

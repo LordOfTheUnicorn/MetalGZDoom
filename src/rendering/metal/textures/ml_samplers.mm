@@ -112,15 +112,15 @@ void MlSamplerManager::SetTextureFilterMode()
     mDesc[0].sAddressMode = MTLSamplerAddressModeRepeat;
     mDesc[0].minFilter     = MTLSamplerMinMagFilterLinear;
     mDesc[0].magFilter     = MTLSamplerMinMagFilterLinear;
-    mDesc[0].lodMinClamp = -1000.f;
-    mDesc[0].lodMaxClamp = 1000.f;
+    //mDesc[0].lodMinClamp = -1000.f;
+    //mDesc[0].lodMaxClamp = 1000.f;
     mDesc[0].maxAnisotropy = 8;
     
     mDesc[2].rAddressMode = MTLSamplerAddressModeRepeat; //GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     mDesc[2].tAddressMode = MTLSamplerAddressModeRepeat; //GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     mDesc[2].sAddressMode = MTLSamplerAddressModeRepeat;
-    mDesc[2].lodMinClamp = -1000.f;
-    mDesc[2].lodMaxClamp = 1000.f;
+    //mDesc[2].lodMinClamp = -1000.f;
+    //mDesc[2].lodMaxClamp = 1000.f;
     mDesc[2].minFilter     = MTLSamplerMinMagFilterLinear;
     mDesc[2].magFilter     = MTLSamplerMinMagFilterLinear;
     mDesc[2].maxAnisotropy = 8;
