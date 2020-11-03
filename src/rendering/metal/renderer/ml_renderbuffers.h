@@ -29,6 +29,7 @@ public:
     void BindDitherTexture(int texunit);
     id<MTLTexture> CreateRenderBuffer(const char *name, MTLPixelFormat format, int width, int height, const void* data = nullptr);
     id<MTLTexture> CreateDepthTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations);
+    void ClearScene();
     
     id<MTLTexture> SceneColor;
     id<MTLDepthStencilState> SceneDepthStencil;

@@ -30,6 +30,7 @@ MlRenderBuffers::~MlRenderBuffers()
     [mSceneDataFB release];
     [PipelineImage[0] release];
     [PipelineImage[1] release];
+    [mDitherTexture release];
 }
 
 void MlRenderBuffers::BeginFrame(int width, int height, int sceneWidth, int sceneHeight)
@@ -182,9 +183,32 @@ id<MTLTexture> MlRenderBuffers::CreateDepthTexture(const char *name, MTLPixelFor
     return dummy;
 }
 
+void MlRenderBuffers::ClearScene()
+{
+    if (mSceneFB)
+        [mSceneFB release];
+    if (mSceneDataFB)
+        [mSceneDataFB release];
+    
+    if (mSceneUsesTextures)
+    {
+        [mSceneMultisampleTex release];
+        [mSceneFogTex release];
+        [mSceneNormalTex release];
+        [mSceneDepthStencilTex release];
+    }
+    else
+    {
+        [mSceneMultisampleBuf release];
+        [mSceneFogBuf release];
+        [mSceneNormalBuf release];
+        [mSceneDepthStencilBuf release];
+    }
+}
+
 void MlRenderBuffers::CreateScene(int width, int height, int samples, bool needsSceneTextures)
 {
-    //ClearScene();
+    ClearScene();
 
       //  if (samples > 1)
       //  {

@@ -122,20 +122,22 @@ void MlRenderState::ApplyState()
     //commandBuffer.label = @"RenderStateCommandBuffer";
 
     //Is this need or not?
-    //if (mBias.mChanged)
-    //{
-    //    if (mBias.mFactor == 0 && mBias.mUnits == 0)
-    //    {
-    //        glDisable(GL_POLYGON_OFFSET_FILL);
-    //    }
-    //    else
-    //    {
-    //        glEnable(GL_POLYGON_OFFSET_FILL);
-    //    }
-    //    glPolygonOffset(mBias.mFactor, mBias.mUnits);
-    //    mBias.mChanged = false;
-    //}
+    if (mBias.mChanged)
+    {
+        //if (mBias.mFactor == 0 && mBias.mUnits == 0)
+        //{
+        //    glDisable(GL_POLYGON_OFFSET_FILL);
+        //}
+        //else
+        //{
+        //    glEnable(GL_POLYGON_OFFSET_FILL);
+        //}
+        [renderCommandEncoder setDepthBias:mBias.mFactor slopeScale:mBias.mUnits clamp:300];
+        //glPolygonOffset(mBias.mFactor, mBias.mUnits);
+        mBias.mChanged = false;
+    }
 }
+    
 
 typedef struct
 {
@@ -285,7 +287,6 @@ bool MlRenderState::ApplyShader()
 
         renderPipelineDesc.colorAttachments[0].alphaBlendOperation         = MTLBlendOperationAdd;
         renderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactorSourceAlpha;
-        renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorSourceAlpha;
         renderPipelineDesc.colorAttachments[0].blendingEnabled = YES;
         
         if(!useBlendMode)
@@ -293,6 +294,7 @@ bool MlRenderState::ApplyShader()
             renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactorOne;
             renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
             renderPipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
+            renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorSourceAlpha;
         }
         else
         {
@@ -301,6 +303,7 @@ bool MlRenderState::ApplyShader()
             renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = srcblend;
             renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;//dstblend;
             renderPipelineDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;//(MTLBlendOperation)blendequation;
+             renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
         }
         
         
@@ -325,7 +328,6 @@ bool MlRenderState::ApplyShader()
     [renderCommandEncoder setRenderPipelineState:pipelineState];
     //if (needCreateDepthState && 1)
     {
-        id<MTLDepthStencilState> test = [device newDepthStencilStateWithDescriptor:depthStateDesc];
         [renderCommandEncoder setDepthStencilState:  depthState[FindDepthIndex(depthStateDesc)]];
     }
 
