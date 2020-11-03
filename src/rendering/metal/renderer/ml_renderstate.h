@@ -133,6 +133,10 @@ public:
     id<MTLBuffer> mtl_index [3];
     bool needDeleteVB = false;
     bool needDeleteIB = false;
+    MTLBlendFactor srcblend = MTLBlendFactorZero;
+    MTLBlendFactor dstblend = MTLBlendFactorZero;
+    int blendequation = 0;
+    bool useBlendMode = false;
     
     size_t offsetVB[2];
     size_t offsetIB[2];

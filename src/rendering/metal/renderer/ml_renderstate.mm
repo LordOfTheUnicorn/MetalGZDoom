@@ -103,6 +103,7 @@ void MlRenderState::ApplyState()
 {
     if (mRenderStyle != stRenderStyle)
     {
+        ApplyBlendMode();
         stRenderStyle = mRenderStyle;
     }
 
@@ -282,14 +283,34 @@ bool MlRenderState::ApplyShader()
         renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
         renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 
-        renderPipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
         renderPipelineDesc.colorAttachments[0].alphaBlendOperation         = MTLBlendOperationAdd;
-        renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactorOne;
-        renderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactorOne;
-        renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
-        renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-
+        renderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactorSourceAlpha;
+        renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorSourceAlpha;
         renderPipelineDesc.colorAttachments[0].blendingEnabled = YES;
+        
+        if(!useBlendMode)
+        {
+            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactorOne;
+            renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
+            renderPipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
+        }
+        else
+        {
+            // FIX IT
+            useBlendMode = false;
+            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = srcblend;
+            renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;//dstblend;
+            renderPipelineDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;//(MTLBlendOperation)blendequation;
+        }
+        
+        
+        //renderPipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
+        //renderPipelineDesc.colorAttachments[0].alphaBlendOperation         = MTLBlendOperationAdd;
+        //renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactorOne;
+        //renderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactorOne;
+        //renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
+        //renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+
         renderPipelineDesc.colorAttachments[0].writeMask = colorMask;
         updated = true;
         
@@ -675,19 +696,23 @@ void MlRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translation
 
 void MlRenderState::ApplyBlendMode()
 {
-    static int blendstyles[] = { GL_ZERO, GL_ONE, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_SRC_COLOR, GL_ONE_MINUS_SRC_COLOR, GL_DST_COLOR, GL_ONE_MINUS_DST_COLOR, };
-    static int renderops[] = { 0, GL_FUNC_ADD, GL_FUNC_SUBTRACT, GL_FUNC_REVERSE_SUBTRACT, -1, -1, -1, -1,
+    static MTLBlendFactor    blendstyles[] =
+      { MTLBlendFactorZero,                MTLBlendFactorOne,         MTLBlendFactorSourceAlpha,
+        MTLBlendFactorOneMinusSourceAlpha, MTLBlendFactorSourceColor, MTLBlendFactorOneMinusSourceColor,
+        MTLBlendFactorDestinationColor,    MTLBlendFactorOneMinusDestinationColor};
+    static int renderops[] = { 0, MTLBlendOperationAdd, MTLBlendOperationSubtract, MTLBlendOperationReverseSubtract, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1 };
+    useBlendMode = true;
 
-    int srcblend = blendstyles[mRenderStyle.SrcAlpha%STYLEALPHA_MAX];
-    int dstblend = blendstyles[mRenderStyle.DestAlpha%STYLEALPHA_MAX];
-    int blendequation = renderops[mRenderStyle.BlendOp & 15];
+    srcblend = blendstyles[mRenderStyle.SrcAlpha%STYLEALPHA_MAX];
+    dstblend = blendstyles[mRenderStyle.DestAlpha%STYLEALPHA_MAX];
+    blendequation = renderops[mRenderStyle.BlendOp & 15];
 
     if (blendequation == -1)    // This was a fuzz style.
     {
-        srcblend = GL_DST_COLOR;
-        dstblend = GL_ONE_MINUS_SRC_ALPHA;
-        blendequation = GL_FUNC_ADD;
+        srcblend = MTLBlendFactorDestinationColor;
+        dstblend = MTLBlendFactorOneMinusSourceAlpha;
+        blendequation = MTLBlendOperationAdd;
     }
 
     // Checks must be disabled until all draw code has been converted.
@@ -695,14 +720,14 @@ void MlRenderState::ApplyBlendMode()
     {
         stSrcBlend = srcblend;
         stDstBlend = dstblend;
-        glBlendFunc(srcblend, dstblend);
+       // glBlendFunc(srcblend, dstblend);
     }
     //if (blendequation != stBlendEquation)
     {
         stBlendEquation = blendequation;
-        glBlendEquation(blendequation);
+       // glBlendEquation(blendequation);
     }
-
+    updated = false;
 }
 
 //==========================================================================
@@ -807,6 +832,7 @@ void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
 
 void MlRenderState::SetDepthMask(bool on)
 {
+    EnableDepthTest(on);
     if(!on)
     {
         //depthStateDesc.depthWriteEnabled                          = on;

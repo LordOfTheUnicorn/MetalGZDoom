@@ -325,27 +325,26 @@ bool MlHardwareTexture::BindOrCreate(FTexture *tex, int texunit, int clampmode, 
 
 void MlHardwareTexture::UnbindAll()
 {
-    //for (int i = 0; i < STATE_TEXTURES_COUNT; i++)
-    //{
-    //    if (metalState[i].Id != -1)
-    //    {
-    //        metalState[i].Id = -1;
-    //        [metalState[i].mTextures release];
-    //    }
-    //
-    //}
+    for (int i = 0; i < STATE_TEXTURES_COUNT; i++)
+    {
+        if (metalState[i].Id != -1)
+        {
+            metalState[i].Id = -1;
+            [metalState[i].mTextures release];
+        }
+    }
 }
 
 void MlHardwareTexture::Unbind(int texunit)
 {
-    //for (int i = 0; i < STATE_TEXTURES_COUNT; i++)
-    //{
-    //    if (metalState[i].Id == texunit)
-    //    {
-    //        metalState[i].Id = -1;
-    //        [metalState[i].mTextures release];
-    //    }
-    //}
+    for (int i = 0; i < STATE_TEXTURES_COUNT; i++)
+    {
+        if (metalState[i].Id == texunit)
+        {
+            metalState[i].Id = -1;
+            [metalState[i].mTextures release];
+        }
+    }
 }
 
 }

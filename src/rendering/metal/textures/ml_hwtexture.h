@@ -45,7 +45,6 @@ struct offsetSize
 class MlHardwareTexture : public IHardwareTexture
 {
 private:
-    
     int mlTexID;
     int mlTextureBytes = 4;
     bool mipmapped = false;
@@ -57,16 +56,14 @@ private:
     //id<MTLTexture> mTex;
     NSString *nameTex;
     //std::vector<offsetSize> mOffsetSize;
-    
-
     int GetDepthBuffer(int w, int h);
 
 public:
     MlHardwareTexture();
     ~MlHardwareTexture();
 
-    static void Unbind(int texunit);
-    static void UnbindAll();
+    void Unbind(int texunit);
+    void UnbindAll();
 
     void BindToFrameBuffer(int w, int h);
     int FindFreeTexIndex()
