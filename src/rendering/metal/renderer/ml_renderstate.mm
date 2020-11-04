@@ -291,7 +291,7 @@ bool MlRenderState::ApplyShader()
         
         if(!useBlendMode)
         {
-            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactorOne;
+            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactorSourceAlpha;
             renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
             renderPipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
             renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorSourceAlpha;
@@ -303,7 +303,7 @@ bool MlRenderState::ApplyShader()
             renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = srcblend;
             renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;//dstblend;
             renderPipelineDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;//(MTLBlendOperation)blendequation;
-             renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+            renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
         }
         
         

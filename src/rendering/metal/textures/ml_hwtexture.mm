@@ -75,7 +75,7 @@ MlHardwareTexture::MlHardwareTexture()
 
 MlHardwareTexture::~MlHardwareTexture()
 {
-   // [mTex release];
+    UnbindAll();
     delete mBuffer;
 };
 

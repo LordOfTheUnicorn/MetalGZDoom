@@ -16,15 +16,19 @@ static inline void InvalidateBufferState()
 
 MlBuffer::MlBuffer()
 {
+    mBuffer = nullptr;
 }
 
 MlBuffer::~MlBuffer()
 {
-    //free(mBuffer);
+    Reset();
 }
 
 void MlBuffer::Reset()
 {
+   if (mBuffer)
+    free(mBuffer);
+    
     mBuffer = nullptr;
 }
 
@@ -40,7 +44,8 @@ void MlBuffer::SetData(size_t size, const void *data, bool staticdata)
         else
         {
             mPersistent = screen->BuffersArePersistent() && !staticdata;
-            map = mBuffer = malloc(size);
+            mBuffer = malloc(size);
+            map = mBuffer;
         }
     }
     else
@@ -53,7 +58,8 @@ void MlBuffer::SetData(size_t size, const void *data, bool staticdata)
         else
         {
             mPersistent = screen->BuffersArePersistent() && !staticdata;
-            map = mBuffer = malloc(size);
+            mBuffer = malloc(size);
+            map = mBuffer;
         }
     }
     buffersize = size;
