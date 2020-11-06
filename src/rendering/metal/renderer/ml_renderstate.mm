@@ -161,6 +161,7 @@ typedef struct
     //#define uLightFactor uLightAttr.g
     //#define uLightDist uLightAttr.r
     vector_float4 uLightAttr;
+    vector_float4 aColor;
 } Uniforms;
 
 typedef struct
@@ -264,7 +265,7 @@ bool MlRenderState::ApplyShader()
         vertexDesc.layouts[1].stepRate = attr == nullptr || attr[1].size > 0 ? 1 : 0;;
         vertexDesc.layouts[1].stepFunction = MTLVertexStepFunctionPerVertex;
         //##########################ATTRIBUTE 2#########################
-        vertexDesc.attributes[2].format = MTLVertexFormatFloat;
+        vertexDesc.attributes[2].format = MTLVertexFormatUChar4Normalized_BGRA;
         vertexDesc.attributes[2].offset = attr == nullptr || attr[2].size > 0 ? 20 : 0;
         vertexDesc.attributes[2].bufferIndex = 0;
         vertexDesc.layouts[2].stride = 0;
@@ -376,7 +377,10 @@ bool MlRenderState::ApplyShader()
     if (mGradientEnabled || activeShader->currentgradientstate)
     {
         activeShader->muObjectColor2.Set(mStreamData.uObjectColor2);
-        activeShader->muGradientTopPlane.Set(vector_float4{mStreamData.uGradientTopPlane.X, mStreamData.uGradientTopPlane.Y, mStreamData.uGradientTopPlane.Z, mStreamData.uGradientTopPlane.W});
+        activeShader->muGradientTopPlane.Set(vector_float4{mStreamData.uGradientTopPlane.X,
+                                                           mStreamData.uGradientTopPlane.Y,
+                                                           mStreamData.uGradientTopPlane.Z,
+                                                           mStreamData.uGradientTopPlane.W});
         activeShader->muGradientBottomPlane.Set(vector_float4{mStreamData.uGradientBottomPlane.X, mStreamData.uGradientBottomPlane.Y, mStreamData.uGradientBottomPlane.Z, mStreamData.uGradientBottomPlane.W});
         activeShader->currentgradientstate = mGradientEnabled;
     }
@@ -449,6 +453,10 @@ bool MlRenderState::ApplyShader()
     uniforms.uObjectColor = {activeShader->muObjectColor.mBuffer.r,activeShader->muObjectColor.mBuffer.g,activeShader->muObjectColor.mBuffer.b,activeShader->muObjectColor.mBuffer.a};
     uniforms.uObjectColor2 = {activeShader->muObjectColor2.mBuffer.r,activeShader->muObjectColor2.mBuffer.g,activeShader->muObjectColor2.mBuffer.b,activeShader->muObjectColor2.mBuffer.a};
     uniforms.uTextureMode = activeShader->muTextureMode.val;
+    uniforms.uLightAttr = activeShader->muLightParms.val;
+    uniforms.aColor = vector_float4{mStreamData.uVertexColor.X,mStreamData.uVertexColor.Y,mStreamData.uVertexColor.Z,mStreamData.uVertexColor.W};
+    //glVertexAttrib4fv(VATTR_COLOR, &mStreamData.uVertexColor.X);
+    //glVertexAttrib4fv(VATTR_NORMAL, &mStreamData.uVertexNormal.X);
     
     [renderCommandEncoder setFragmentBytes:&uniforms length:sizeof(Uniforms) atIndex:2];
     
@@ -769,8 +777,8 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
                mtlBuffer->mStride * count);
         
         [renderCommandEncoder setVertexBuffer:mtl_vertexBuffer[currentIndexVB]
-                                                      offset:offsetVB[1]
-                                                     atIndex:0];
+                                       offset:offsetVB[1]
+                                      atIndex:0];
         
         //printf("REALLY SIZE = %lu\n", (mtlBuffer->mStride * count));
         //printf("offsetVB[1] = %lu\n", offsetVB[1]);
@@ -820,14 +828,6 @@ void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
                                     indexBuffer:mtl_index[currentIndexVB]
                               indexBufferOffset:(index * sizeof(uint32_t)) + indexOffset[0]];
     [renderCommandEncoder popDebugGroup];
-    
-    //[indexBuffer release];
-    //if (needCpyBuffer)
-    //{
-    //    offsetVB[1] += mtlBuffer->mStride * count;
-    //    needCpyBuffer = false;
-    //}
-    
 
     drawcalls.Unclock();
 }
