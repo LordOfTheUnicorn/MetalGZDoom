@@ -42,6 +42,18 @@
 namespace MetalRenderer
 {
 
+enum
+{
+    VATTR_VERTEX,
+    VATTR_TEXCOORD,
+    VATTR_COLOR,
+    VATTR_VERTEX2,
+    VATTR_NORMAL,
+    VATTR_NORMAL2,
+    
+    VATTR_MAX
+};
+
 class MlRenderBuffers;
 class MlShader;
 struct HWSectorPlane;
@@ -84,6 +96,13 @@ class MlRenderState : public FRenderState
     int mScissorY;
     int mScissorWidth;
     int mScissorHeight;
+    
+    struct RenderPipeline
+    {
+        int sizeAttr;
+        MTLBlendFactor sourceRGBBlendFactor;
+        MTLColorWriteMask colorMask;
+    };
 
     IVertexBuffer *mCurrentVertexBuffer;
     int mCurrentVertexOffsets[2];    // one per binding point
@@ -93,8 +112,11 @@ class MlRenderState : public FRenderState
     id <MTLLibrary> defaultLibrary;
     id <MTLFunction> VShader;
     id <MTLFunction> FShader;
-    MTLVertexDescriptor *vertexDesc;
-    id<MTLRenderPipelineState> pipelineState;
+    MTLVertexDescriptor *vertexDesc[VATTR_MAX];
+    id<MTLRenderPipelineState> pipelineState[28];
+    RenderPipeline renderPipeline[28];
+    int currentState = 0;
+
     
     struct DepthIndex
     {
@@ -112,6 +134,8 @@ class MlRenderState : public FRenderState
         int                 ind;
         bool                writeDepth;
     };
+    
+    void CreateRenderPipelineState();
     
     DepthIndex depthIndex[SIZE_DEPTH_DESC];
     id<MTLDepthStencilState> depthState[SIZE_DEPTH_DESC];
@@ -133,7 +157,7 @@ public:
     id<MTLBuffer> mtl_index [3];
     bool needDeleteVB = false;
     bool needDeleteIB = false;
-    MTLBlendFactor srcblend = MTLBlendFactorZero;
+    MTLBlendFactor srcblend = MTLBlendFactorSourceAlpha;
     MTLBlendFactor dstblend = MTLBlendFactorZero;
     int blendequation = 0;
     bool useBlendMode = false;
@@ -150,12 +174,11 @@ public:
     void AllocDesc()
     {
         CreateFanToTrisIndexBuffer();
-        if (vertexDesc == nil)
-            vertexDesc = [[MTLVertexDescriptor alloc] init];
-        if (renderPipelineDesc == nil)
-            renderPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
-        if (depthStateDesc == nil)
-            depthStateDesc = [[MTLDepthStencilDescriptor alloc] init];
+        if (vertexDesc[0] == nil)      vertexDesc[0] = [[MTLVertexDescriptor alloc] init];
+        if (vertexDesc[1] == nil)      vertexDesc[1] = [[MTLVertexDescriptor alloc] init];
+        if (renderPipelineDesc == nil) renderPipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
+        if (depthStateDesc == nil)     depthStateDesc = [[MTLDepthStencilDescriptor alloc] init];
+        
         depthWriteEnabled = false;
         MTLStencilOperation op2ml[] = { MTLStencilOperationKeep, MTLStencilOperationIncrementClamp, MTLStencilOperationDecrementClamp };
         //                                          { GL_KEEP,                        GL_INCR,                          GL_DECR };

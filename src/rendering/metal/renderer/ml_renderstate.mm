@@ -223,7 +223,7 @@ void MlRenderState::InitialaziState()
     defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/metalShaders/doomMetallib.metallib" error:&error];
     VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
     FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
-    commandQueue = [device newCommandQueueWithMaxCommandBufferCount:1024];
+    commandQueue = [device newCommandQueueWithMaxCommandBufferCount:512];
     needCpyBuffer = true;
     if(error)
     {
@@ -232,6 +232,112 @@ void MlRenderState::InitialaziState()
     }
     
     AllocDesc();
+    CreateRenderPipelineState();
+}
+
+void MlRenderState::CreateRenderPipelineState()
+{
+    //##########################ATTRIBUTE 0#########################
+    vertexDesc[0].attributes[0].format = MTLVertexFormatFloat3;
+    vertexDesc[0].attributes[0].offset = 0;
+    vertexDesc[0].attributes[0].bufferIndex = 0;
+    vertexDesc[0].layouts[0].stride = 24;
+    vertexDesc[0].layouts[0].stepRate = 1;
+    vertexDesc[0].layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+    //##########################ATTRIBUTE 1#########################
+    vertexDesc[0].attributes[1].format = MTLVertexFormatFloat2;
+    vertexDesc[0].attributes[1].offset = 12;
+    vertexDesc[0].attributes[1].bufferIndex = 0;
+    //##########################ATTRIBUTE 2#########################
+    vertexDesc[0].attributes[2].format = MTLVertexFormatUChar4Normalized_BGRA;
+    vertexDesc[0].attributes[2].offset = 20;
+    vertexDesc[0].attributes[2].bufferIndex = 0;
+    //##############################################################
+    
+    //##########################ATTRIBUTE 0#########################
+    vertexDesc[1].attributes[0].format = MTLVertexFormatFloat3;
+    vertexDesc[1].attributes[0].offset = 0;
+    vertexDesc[1].attributes[0].bufferIndex = 0;
+    vertexDesc[1].layouts[0].stride = 20;
+    vertexDesc[1].layouts[0].stepRate = 1;
+    vertexDesc[1].layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+    //##########################ATTRIBUTE 1#########################
+    vertexDesc[1].attributes[1].format = MTLVertexFormatFloat2;
+    vertexDesc[1].attributes[1].offset = 12;
+    vertexDesc[1].attributes[1].bufferIndex = 0;
+        
+    renderPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+    renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+
+    renderPipelineDesc.colorAttachments[0].alphaBlendOperation         = MTLBlendOperationAdd;
+    renderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactorSourceAlpha;
+    renderPipelineDesc.colorAttachments[0].blendingEnabled = YES;
+
+    renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
+    renderPipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
+    
+    // fix it
+    renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+    
+    renderPipelineDesc.label = @"USED 3 ATTRIBUTES";
+    renderPipelineDesc.vertexFunction = VShader;
+    renderPipelineDesc.fragmentFunction = FShader;
+    renderPipelineDesc.vertexDescriptor = vertexDesc[0];
+    renderPipelineDesc.sampleCount = 1;
+    
+    MTLBlendFactor    styles[] =
+    { MTLBlendFactorZero,                MTLBlendFactorOne,         MTLBlendFactorSourceAlpha,
+      MTLBlendFactorOneMinusSourceAlpha, MTLBlendFactorSourceColor, MTLBlendFactorOneMinusSourceColor,
+      MTLBlendFactorDestinationColor,    MTLBlendFactorOneMinusDestinationColor};
+    
+    MTLColorWriteMask mask[] = {MTLColorWriteMaskAll, MTLColorWriteMaskAlpha};
+    NSError* error = nil;
+    int index = 0;
+    for (int j = 0; j < 2; j++)
+    {
+        renderPipelineDesc.colorAttachments[0].writeMask = mask[j];
+        for(int i = 0; i < 7; i++)
+        {
+            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = styles[i];
+            pipelineState[index] = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc  error:&error];
+            if(error)
+            {
+                NSLog(@"Failed to created pipeline state, error %@", error);
+                assert(pipelineState);
+            }
+            renderPipeline[index].colorMask = mask[j];
+            renderPipeline[index].sourceRGBBlendFactor = styles[i];
+            renderPipeline[index].sizeAttr = 3;
+            index++;
+        }
+    }
+    VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimpleWithoutColor"];
+    FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimpleWithoutColor"];
+    renderPipelineDesc.label = @"USED 2 ATTRIBUTES";
+    renderPipelineDesc.vertexFunction = VShader;
+    renderPipelineDesc.fragmentFunction = FShader;
+    renderPipelineDesc.vertexDescriptor = vertexDesc[1];
+    renderPipelineDesc.sampleCount = 1;
+    
+    for (int j = 0; j < 2; j++)
+    {
+        renderPipelineDesc.colorAttachments[0].writeMask = mask[j];
+        for(int i = 0; i < 7; i++)
+        {
+            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = styles[i];
+            pipelineState[index] = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc  error:&error];
+            if(error)
+            {
+                NSLog(@"Failed to created pipeline state, error %@", error);
+                assert(pipelineState);
+            }
+            renderPipeline[index].colorMask = mask[j];
+            renderPipeline[index].sourceRGBBlendFactor = styles[i];
+            renderPipeline[index].sizeAttr = 2;
+            index++;
+        }
+    }
 }
 
 bool MlRenderState::ApplyShader()
@@ -240,93 +346,32 @@ bool MlRenderState::ApplyShader()
     activeShader = new MlShader();
     MlVertexBuffer* vertexBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
     
-    if (vertexBuffer == nullptr || VertexBufferAttributeWasChange(vertexBuffer->mAttributeInfo) || !updated)
+    if (vertexBuffer == nullptr /*|| VertexBufferAttributeWasChange(vertexBuffer->mAttributeInfo)*/ || !updated)
     {
         bool isVertexBufferNull = vertexBuffer == nullptr;
         if (!isVertexBufferNull)
             CopyVertexBufferAttribute(vertexBuffer->mAttributeInfo);
         
-        size_t stride = !isVertexBufferNull ? vertexBuffer->mStride : 24;
-        const MLVertexBufferAttribute *attr = !isVertexBufferNull ? vertexBuffer->mAttributeInfo : nullptr;
-        NSError* error = nil;
-            
-        //##########################ATTRIBUTE 0#########################
-        vertexDesc.attributes[0].format = MTLVertexFormatFloat3;
-        vertexDesc.attributes[0].offset = 0;
-        vertexDesc.attributes[0].bufferIndex = 0;
-        vertexDesc.layouts[0].stride = stride;
-        vertexDesc.layouts[0].stepRate = 1;
-        vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
-        //##########################ATTRIBUTE 1#########################
-        vertexDesc.attributes[1].format = MTLVertexFormatFloat2;
-        vertexDesc.attributes[1].offset = attr == nullptr || attr[1].size > 0 ? 12 : 0;
-        vertexDesc.attributes[1].bufferIndex = 0;
-        vertexDesc.layouts[1].stride = 0;
-        vertexDesc.layouts[1].stepRate = attr == nullptr || attr[1].size > 0 ? 1 : 0;;
-        vertexDesc.layouts[1].stepFunction = MTLVertexStepFunctionPerVertex;
-        //##########################ATTRIBUTE 2#########################
-        vertexDesc.attributes[2].format = MTLVertexFormatUChar4Normalized_BGRA;
-        vertexDesc.attributes[2].offset = attr == nullptr || attr[2].size > 0 ? 20 : 0;
-        vertexDesc.attributes[2].bufferIndex = 0;
-        vertexDesc.layouts[2].stride = 0;
-        vertexDesc.layouts[2].stepRate  = attr == nullptr || attr[2].size > 0 ? 1 : 0;
-        vertexDesc.layouts[2].stepFunction = MTLVertexStepFunctionPerVertex;
-        vertexDesc.layouts[3].stepFunction = MTLVertexStepFunctionConstant;
-        vertexDesc.layouts[4].stepFunction = MTLVertexStepFunctionConstant;
-        vertexDesc.layouts[5].stepFunction = MTLVertexStepFunctionConstant;
-        //##############################################################
-            
-        renderPipelineDesc.label = @"VertexMain";
-        renderPipelineDesc.vertexFunction = VShader;
-        renderPipelineDesc.fragmentFunction = FShader;
-        renderPipelineDesc.vertexDescriptor = vertexDesc;
-        renderPipelineDesc.sampleCount = 1;
-            
-        renderPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
-        renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-        renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
-
-        renderPipelineDesc.colorAttachments[0].alphaBlendOperation         = MTLBlendOperationAdd;
-        renderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactorSourceAlpha;
-        renderPipelineDesc.colorAttachments[0].blendingEnabled = YES;
-        
-        if(!useBlendMode)
+        int sizeAttr = 0;
+        for (int i = 0; i < 6; i++)
         {
-            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactorSourceAlpha;
-            renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
-            renderPipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
-            renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorSourceAlpha;
-        }
-        else
-        {
-            // FIX IT
-            useBlendMode = false;
-            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = srcblend;
-            renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactorOneMinusSourceAlpha;//dstblend;
-            renderPipelineDesc.colorAttachments[0].rgbBlendOperation = MTLBlendOperationAdd;//(MTLBlendOperation)blendequation;
-            renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+            if (vertexBuffer->mAttributeInfo[i].size == 0)
+                break;
+            
+            sizeAttr++;
         }
         
-        
-        //renderPipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
-        //renderPipelineDesc.colorAttachments[0].alphaBlendOperation         = MTLBlendOperationAdd;
-        //renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor        = MTLBlendFactorOne;
-        //renderPipelineDesc.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactorOne;
-        //renderPipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
-        //renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
-
-        renderPipelineDesc.colorAttachments[0].writeMask = colorMask;
-        updated = true;
-        
-        pipelineState = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc  error:&error];
-            
-        if(!pipelineState || error)
+        for(int i = 0; i < 28; i++)
         {
-            NSLog(@"Failed to created pipeline state, error %@", error);
-            assert(pipelineState);
+            if (renderPipeline[i].colorMask == colorMask && renderPipeline[i].sizeAttr == sizeAttr && renderPipeline[i].sourceRGBBlendFactor == srcblend)
+            {
+                currentState = i;
+                break;
+            }
         }
     }
-    [renderCommandEncoder setRenderPipelineState:pipelineState];
+    
+    [renderCommandEncoder setRenderPipelineState:pipelineState[currentState]];
     //if (needCreateDepthState && 1)
     {
         [renderCommandEncoder setDepthStencilState:  depthState[FindDepthIndex(depthStateDesc)]];
