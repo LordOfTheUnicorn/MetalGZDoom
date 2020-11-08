@@ -73,23 +73,54 @@ static VSMatrix identityMatrix(1);
 void MlRenderState::Reset()
 {
     FRenderState::Reset();
-    mVertexBuffer = mCurrentVertexBuffer = nullptr;
     mGlossiness = 0.0f;
     mSpecularLevel = 0.0f;
     mShaderTimer = 0.0f;
-
-    stRenderStyle = DefaultRenderStyle();
+    mCurrentVertexOffsets[0] = mVertexOffsets[0] = 0;
     stSrcBlend = stDstBlend = -1;
     stBlendEquation = -1;
     stAlphaTest = 0;
     mLastDepthClamp = true;
-
     mEffectState = 0;
-    activeShader = nullptr;
+    
+    stRenderStyle = DefaultRenderStyle();
 
-    mCurrentVertexBuffer = nullptr;
-    mCurrentVertexOffsets[0] = mVertexOffsets[0] = 0;
-    mCurrentIndexBuffer = nullptr;
+    if (mCurrentVertexBuffer)
+    {
+        delete mCurrentVertexBuffer;
+        mCurrentVertexBuffer = nullptr;
+    }
+    if (mVertexBuffer)
+    {
+        delete mVertexBuffer;
+        mVertexBuffer = nullptr;
+    }
+    if (mCurrentIndexBuffer)
+    {
+        delete mCurrentIndexBuffer;
+        mCurrentIndexBuffer = nullptr;
+    }
+    
+    if (activeShader)
+    {
+        delete activeShader;
+        activeShader = nullptr;
+    }
+    
+    if (needDeleteVB)
+    {
+        [mtl_vertexBuffer[0] release];
+        [mtl_vertexBuffer[1] release];
+        [mtl_vertexBuffer[2] release];
+    }
+    
+    if  (needDeleteIB)
+    {
+        [mtl_indexBuffer[0] release];
+        [mtl_indexBuffer[1] release];
+        [mtl_indexBuffer[2] release];
+    }
+    
 }
 
 
@@ -312,6 +343,25 @@ void MlRenderState::CreateRenderPipelineState()
             index++;
         }
     }
+    renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorSourceAlpha;
+    for (int j = 0; j < 2; j++)
+    {
+        renderPipelineDesc.colorAttachments[0].writeMask = mask[j];
+        for(int i = 0; i < 7; i++)
+        {
+            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = styles[i];
+            pipelineState[index] = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc  error:&error];
+            if(error)
+            {
+                NSLog(@"Failed to created pipeline state, error %@", error);
+                assert(pipelineState);
+            }
+            renderPipeline[index].colorMask = mask[j];
+            renderPipeline[index].sourceRGBBlendFactor = styles[i];
+            renderPipeline[index].sizeAttr = 3;
+            index++;
+        }
+    }
     VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimpleWithoutColor"];
     FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimpleWithoutColor"];
     renderPipelineDesc.label = @"USED 2 ATTRIBUTES";
@@ -338,12 +388,30 @@ void MlRenderState::CreateRenderPipelineState()
             index++;
         }
     }
+    renderPipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+    for (int j = 0; j < 2; j++)
+    {
+        renderPipelineDesc.colorAttachments[0].writeMask = mask[j];
+        for(int i = 0; i < 7; i++)
+        {
+            renderPipelineDesc.colorAttachments[0].sourceRGBBlendFactor = styles[i];
+            pipelineState[index] = [device newRenderPipelineStateWithDescriptor:renderPipelineDesc  error:&error];
+            if(error)
+            {
+                NSLog(@"Failed to created pipeline state, error %@", error);
+                assert(pipelineState);
+            }
+            renderPipeline[index].colorMask = mask[j];
+            renderPipeline[index].sourceRGBBlendFactor = styles[i];
+            renderPipeline[index].sizeAttr = 2;
+            index++;
+        }
+    }
 }
 
 bool MlRenderState::ApplyShader()
 {
     static const float nulvec[] = { 0.f, 0.f, 0.f, 0.f };
-    activeShader = new MlShader();
     MlVertexBuffer* vertexBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
     
     if (vertexBuffer == nullptr /*|| VertexBufferAttributeWasChange(vertexBuffer->mAttributeInfo)*/ || !updated)
@@ -361,7 +429,7 @@ bool MlRenderState::ApplyShader()
             sizeAttr++;
         }
         
-        for(int i = 0; i < 28; i++)
+        for(int i = 0; i < PIPELINE_STATE; i++)
         {
             if (renderPipeline[i].colorMask == colorMask && renderPipeline[i].sizeAttr == sizeAttr && renderPipeline[i].sourceRGBBlendFactor == srcblend)
             {
@@ -527,7 +595,6 @@ bool MlRenderState::ApplyShader()
     
     activeShader->muLightIndex.Set(index);
     return true;
-    
 }
 
 void MlRenderState::ApplyBuffers()
@@ -631,7 +698,7 @@ void MlRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescri
     
     if (activeShader == nullptr)
     {
-        activeShader = new MlShader();
+       activeShader = new MlShader();
     }
 }
 
@@ -752,7 +819,7 @@ void MlRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translation
 void MlRenderState::ApplyBlendMode()
 {
     static MTLBlendFactor    blendstyles[] =
-      { MTLBlendFactorZero,                MTLBlendFactorOne,         MTLBlendFactorSourceAlpha,
+      { MTLBlendFactorZero,                MTLBlendFactorSourceAlpha,         MTLBlendFactorSourceAlpha,
         MTLBlendFactorOneMinusSourceAlpha, MTLBlendFactorSourceColor, MTLBlendFactorOneMinusSourceColor,
         MTLBlendFactorDestinationColor,    MTLBlendFactorOneMinusDestinationColor};
     static int renderops[] = { 0, MTLBlendOperationAdd, MTLBlendOperationSubtract, MTLBlendOperationReverseSubtract, -1, -1, -1, -1,
