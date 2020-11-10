@@ -202,9 +202,9 @@ public:
                 
                 depthState[val] = [device newDepthStencilStateWithDescriptor: depthStateDesc];
                 depthIndex[val] = {op2ml[i], df2ml[j], val, true};
+                val++;
                 
                 depthStateDesc.depthWriteEnabled = NO;
-                val++;
                 depthState[val] = [device newDepthStencilStateWithDescriptor: depthStateDesc];
                 depthIndex[val] = {op2ml[i], df2ml[j], val, false};
                 val++;

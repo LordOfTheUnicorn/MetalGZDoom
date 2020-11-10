@@ -208,6 +208,7 @@ typedef struct
     vector_float4 uGradientBottomPlane;
     vector_float4 uGlowBottomColor;
     vector_float4 uGradientTopPlane;
+    vector_float4 aNormal;
 } VSUniforms;
 
 typedef struct
@@ -316,6 +317,7 @@ void MlRenderState::CreateRenderPipelineState()
     renderPipelineDesc.fragmentFunction = FShader;
     renderPipelineDesc.vertexDescriptor = vertexDesc[0];
     renderPipelineDesc.sampleCount = 1;
+    
     
     MTLBlendFactor    styles[] =
     { MTLBlendFactorZero,                MTLBlendFactorOne,         MTLBlendFactorSourceAlpha,
@@ -444,9 +446,8 @@ bool MlRenderState::ApplyShader()
     {
         [renderCommandEncoder setDepthStencilState:  depthState[FindDepthIndex(depthStateDesc)]];
     }
-
+    
     int fogset = 0;
-
     if (mFogEnabled)
     {
         if (mFogEnabled == 2)
@@ -590,6 +591,8 @@ bool MlRenderState::ApplyShader()
     VSUniform.uGradientBottomPlane = activeShader->muGradientBottomPlane.val;
     VSUniform.uGlowBottomColor = activeShader->muGlowBottomColor.val;
     VSUniform.uGradientTopPlane = activeShader->muGradientTopPlane.val;
+    VSUniform.aNormal = vector_float4{mStreamData.uVertexNormal.X,mStreamData.uVertexNormal.Y,mStreamData.uVertexNormal.Z,mStreamData.uVertexNormal.W};
+    
     
     [renderCommandEncoder setVertexBytes:&VSUniform length:sizeof(VSUniform) atIndex:5];
     
