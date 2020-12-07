@@ -563,13 +563,13 @@ int SystemBaseFrameBuffer::GetTitleBarHeight() const
 
 int SystemBaseFrameBuffer::GetClientWidth()
 {
-    const int clientWidth = 1440;//I_GetContentViewSize(m_window).width;
+    const int clientWidth = I_GetContentViewSize(m_window).width;
 	return clientWidth > 0 ? clientWidth : GetWidth();
 }
 
 int SystemBaseFrameBuffer::GetClientHeight()
 {
-    const int clientHeight = 900;//I_GetContentViewSize(m_window).height;
+    const int clientHeight = I_GetContentViewSize(m_window).height;
 	return clientHeight > 0 ? clientHeight : GetHeight();
 }
 

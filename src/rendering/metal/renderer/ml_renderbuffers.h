@@ -8,6 +8,8 @@
 namespace MetalRenderer
 {
 
+static id<MTLTexture> CreateRenderBuffer(const char *name, MTLPixelFormat format, int width, int height, const void* data = nullptr);
+
 class MlHardwareTexture;
 
 class MlRenderBuffers
@@ -27,7 +29,7 @@ public:
     int NextEye(int eyeCount) {raise(SIGTRAP);};
     void Setup(int width, int height, int sceneWidth, int sceneHeight);
     void BindDitherTexture(int texunit);
-    id<MTLTexture> CreateRenderBuffer(const char *name, MTLPixelFormat format, int width, int height, const void* data = nullptr);
+    //id<MTLTexture> CreateRenderBuffer(const char *name, MTLPixelFormat format, int width, int height, const void* data = nullptr);
     id<MTLTexture> CreateDepthTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations);
     void ClearScene();
     

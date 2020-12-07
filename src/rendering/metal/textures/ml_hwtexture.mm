@@ -166,6 +166,7 @@ unsigned int MlHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w, 
     desc.sampleCount = 1;
     
     tex = [device newTextureWithDescriptor:desc];
+    [desc release];
     
     if(buffer)
     {
@@ -243,6 +244,7 @@ bool MlHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int 
     
     metalState[currentTexId].mTextures = [device newTextureWithDescriptor:desc];
     metalState[currentTexId].Id = texunit;
+    [desc release];
     
     if(buffer)
     {

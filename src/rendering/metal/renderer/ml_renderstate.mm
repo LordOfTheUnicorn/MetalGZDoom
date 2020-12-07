@@ -252,10 +252,10 @@ void MlRenderState::InitialaziState()
 {
     Reset();
     NSError* error = nil;
-    defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/metalShaders/doomMetallib.metallib" error:&error];
-    VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
-    FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
-    commandQueue = [device newCommandQueueWithMaxCommandBufferCount:512];
+    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn/git/MetalGZDoom/metalShaders/doomMetallib.metallib" error:&error];
+    if (VShader == nil)        VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
+    if (FShader  == nil)       FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
+    if (commandQueue == nil)   commandQueue = [device newCommandQueueWithMaxCommandBufferCount:512];
     needCpyBuffer = true;
     if(error)
     {
@@ -298,7 +298,7 @@ void MlRenderState::CreateRenderPipelineState()
     vertexDesc[1].attributes[1].offset = 12;
     vertexDesc[1].attributes[1].bufferIndex = 0;
         
-    renderPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+    renderPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;//MTLPixelFormatBGRA8Unorm_sRGB;
     renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
     renderPipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
 
@@ -413,6 +413,8 @@ void MlRenderState::CreateRenderPipelineState()
 
 bool MlRenderState::ApplyShader()
 {
+    @autoreleasepool
+    {
     static const float nulvec[] = { 0.f, 0.f, 0.f, 0.f };
     MlVertexBuffer* vertexBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
     
@@ -597,6 +599,7 @@ bool MlRenderState::ApplyShader()
     [renderCommandEncoder setVertexBytes:&VSUniform length:sizeof(VSUniform) atIndex:5];
     
     activeShader->muLightIndex.Set(index);
+    }
     return true;
 }
 
@@ -701,7 +704,7 @@ void MlRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescri
     
     if (activeShader == nullptr)
     {
-       activeShader = new MlShader();
+        activeShader = new MlShader();
     }
 }
 
@@ -747,6 +750,8 @@ void MlRenderState::EndFrame()
     
     [renderCommandEncoder endEncoding];
     [commandBuffer commit];
+    [commandBuffer release];
+    [renderCommandEncoder release];
     //[commandBuffer waitUntilCompleted];
     currentIndexVB = currentIndexVB == 2 ? 0 : currentIndexVB + 1;
     offsetVB[0] = offsetVB[1] = 0;
@@ -866,43 +871,46 @@ static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine,
 
 void MlRenderState::Draw(int dt, int index, int count, bool apply)
 {
-    if (apply)
+    @autoreleasepool
     {
-        Apply();
-    }
-    
-    drawcalls.Clock();
-    MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
-    float* buffer = &(((float*)(mtlBuffer->mBuffer))[(mtlBuffer->mStride * index) / 4]);
-    
-    //printf("Draw = %lu\n", mtlBuffer->mStride * count);
-    
-    if (dt == 3)
-    {
-        [renderCommandEncoder setVertexBytes:buffer length:count * mtlBuffer->mStride atIndex:0];
-        [renderCommandEncoder drawIndexedPrimitives:dt2ml[dt]
-                                         indexCount:(count - 2) * 3
-                                          indexType:MTLIndexTypeUInt32
-                                        indexBuffer:fanIndexBuffer indexBufferOffset:0];
-    }
-    else
-    {
-        memcpy((char*)mtl_vertexBuffer[currentIndexVB].contents + offsetVB[1],
-               (char*)mtlBuffer->mBuffer + mtlBuffer->mStride * index,
-               mtlBuffer->mStride * count);
+        if (apply)
+        {
+            Apply();
+        }
         
-        [renderCommandEncoder setVertexBuffer:mtl_vertexBuffer[currentIndexVB]
-                                       offset:offsetVB[1]
-                                      atIndex:0];
+        drawcalls.Clock();
+        MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+        float* buffer = &(((float*)(mtlBuffer->mBuffer))[(mtlBuffer->mStride * index) / 4]);
         
-        //printf("REALLY SIZE = %lu\n", (mtlBuffer->mStride * count));
-        //printf("offsetVB[1] = %lu\n", offsetVB[1]);
-        offsetVB[1] += mtlBuffer->mStride * count;
-        [renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:/*index*/0 vertexCount:count];
+        //printf("Draw = %lu\n", mtlBuffer->mStride * count);
+        
+        if (dt == 3)
+        {
+            [renderCommandEncoder setVertexBytes:buffer length:count * mtlBuffer->mStride atIndex:0];
+            [renderCommandEncoder drawIndexedPrimitives:dt2ml[dt]
+                                             indexCount:(count - 2) * 3
+                                              indexType:MTLIndexTypeUInt32
+                                            indexBuffer:fanIndexBuffer indexBufferOffset:0];
+        }
+        else
+        {
+            memcpy((char*)mtl_vertexBuffer[currentIndexVB].contents + offsetVB[1],
+                   (char*)mtlBuffer->mBuffer + mtlBuffer->mStride * index,
+                   mtlBuffer->mStride * count);
+            
+            [renderCommandEncoder setVertexBuffer:mtl_vertexBuffer[currentIndexVB]
+                                           offset:offsetVB[1]
+                                          atIndex:0];
+            
+            //printf("REALLY SIZE = %lu\n", (mtlBuffer->mStride * count));
+            //printf("offsetVB[1] = %lu\n", offsetVB[1]);
+            offsetVB[1] += mtlBuffer->mStride * count;
+            [renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:/*index*/0 vertexCount:count];
+        }
+        [renderCommandEncoder popDebugGroup];
+        
+        drawcalls.Unclock();
     }
-    [renderCommandEncoder popDebugGroup];
-    
-    drawcalls.Unclock();
 }
 
 void MlRenderState::CreateFanToTrisIndexBuffer()
@@ -919,32 +927,35 @@ void MlRenderState::CreateFanToTrisIndexBuffer()
 
 void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
 {
-    if (apply)
+    @autoreleasepool
     {
-        Apply();
-    }
-    drawcalls.Clock();
-    //MlIndexBuffer*  IndexBuffer    = static_cast<MlIndexBuffer*>(mIndexBuffer);
-    //id<MTLBuffer>   indexBuffer    = [device newBufferWithBytes:(float*)IndexBuffer->mBuffer  length:IndexBuffer->Size()  options:MTLResourceStorageModeShared];
-    
-    //int *val = (int*)IndexBuffer->mBuffer;
-    
-    MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
-    
-    
-    [renderCommandEncoder setVertexBuffer:mtl_indexBuffer[currentIndexVB]
-                                   offset:offsetIB[0]
-                                  atIndex:0];
-    
-    
-    [renderCommandEncoder drawIndexedPrimitives:dt2ml[dt]
-                                     indexCount:count
-                                      indexType:MTLIndexTypeUInt32
-                                    indexBuffer:mtl_index[currentIndexVB]
-                              indexBufferOffset:(index * sizeof(uint32_t)) + indexOffset[0]];
-    [renderCommandEncoder popDebugGroup];
+        if (apply)
+        {
+            Apply();
+        }
+        drawcalls.Clock();
+        //MlIndexBuffer*  IndexBuffer    = static_cast<MlIndexBuffer*>(mIndexBuffer);
+        //id<MTLBuffer>   indexBuffer    = [device newBufferWithBytes:(float*)IndexBuffer->mBuffer  length:IndexBuffer->Size()  options:MTLResourceStorageModeShared];
+        
+        //int *val = (int*)IndexBuffer->mBuffer;
+        
+        MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+        
+        
+        [renderCommandEncoder setVertexBuffer:mtl_indexBuffer[currentIndexVB]
+                                       offset:offsetIB[0]
+                                      atIndex:0];
+        
+        
+        [renderCommandEncoder drawIndexedPrimitives:dt2ml[dt]
+                                         indexCount:count
+                                          indexType:MTLIndexTypeUInt32
+                                        indexBuffer:mtl_index[currentIndexVB]
+                                  indexBufferOffset:(index * sizeof(uint32_t)) + indexOffset[0]];
+        [renderCommandEncoder popDebugGroup];
 
-    drawcalls.Unclock();
+        drawcalls.Unclock();
+    }
 }
 
 void MlRenderState::SetDepthMask(bool on)

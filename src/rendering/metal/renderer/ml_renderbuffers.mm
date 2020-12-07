@@ -26,7 +26,6 @@ MlRenderBuffers::~MlRenderBuffers()
     [mSceneFogBuf release];
     [mSceneNormalBuf release];
     [mSceneFB release];
-    [mDrawable release];
     [mSceneDataFB release];
     [PipelineImage[0] release];
     [PipelineImage[1] release];
@@ -47,7 +46,7 @@ void MlRenderBuffers::CreatePipeline(int width, int height)
         MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
         desc.width = fb->GetClientWidth();
         desc.height = fb->GetClientHeight();
-        desc.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;//MTLPixelFormatRGBA16Float;
+        desc.pixelFormat = MTLPixelFormatRGBA16Float;//MTLPixelFormatRGBA16Float;
         desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
         PipelineImage[i] = [device newTextureWithDescriptor:desc];
         
@@ -73,7 +72,6 @@ void MlRenderBuffers::BindDitherTexture(int texunit)
         mDitherTexture = Create2DTexture("DitherTexture", MTLPixelFormatRG32Float, 8, 8, data);
     }
     MLRenderer->mSamplerManager->SetRepeatAddressMode(true);
-    //mDitherTexture.Bind(1, GL_NEAREST, GL_REPEAT);
 }
 
 id<MTLTexture> MlRenderBuffers::Create2DTexture(const char *name, MTLPixelFormat format, int width, int height, const void* data /*= nullptr*/)
@@ -84,36 +82,11 @@ id<MTLTexture> MlRenderBuffers::Create2DTexture(const char *name, MTLPixelFormat
     desc.pixelFormat = format;
     desc.storageMode = MTLStorageModePrivate;
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
-    
-   // printf(name);
-   // printf(" is created/n");
+   
     id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
     
-    if (data)
-    {
-        MTLRegion region = MTLRegionMake2D(0, 0, width, height);
-        //[dummy replaceRegion:region mipmapLevel:1 withBytes:buffer bytesPerRow:(4*rh)];
-    }
-    
+    [desc release];
     return dummy;
-
-    //switch (format)
-    //{
-    //case GL_RGBA8:              desc.pixelFormat = MTLPixelFormatRGBA8Unorm;
-    //case GL_RGBA16:             desc.pixelFormat = MTLPixelFormatRGBA16Snorm;
-    //case GL_RGBA16F:            desc.pixelFormat = MTLPixelFormatRGBA16Float;
-    //case GL_RGBA32F:            desc.pixelFormat = MTLPixelFormatRGBA32Float;
-    //case GL_RGBA16_SNORM:       desc.pixelFormat = MTLPixelFormatRGBA16Snorm;
-    //case GL_R32F:               desc.pixelFormat = MTLPixelFormatR32Float;
-    //case GL_R16F:               desc.pixelFormat = MTLPixelFormatR16Float;
-    //case GL_RG32F:              desc.pixelFormat = MTLPixelFormatRG32Float;
-    //case GL_RG16F:              desc.pixelFormat = MTLPixelFormatRG16Float;
-    //case GL_RGB10_A2:           desc.pixelFormat = MTLPixelFormatRGB10A2Unorm;
-    //case GL_DEPTH_COMPONENT24:  desc.pixelFormat = GL_DEPTH_COMPONENT;    datatype = GL_FLOAT; break;
-    //case GL_STENCIL_INDEX8:     desc.pixelFormat = GL_STENCIL_INDEX;      datatype = GL_INT; break;
-    //case GL_DEPTH24_STENCIL8:   desc.pixelFormat = GL_DEPTH_STENCIL;      datatype = GL_UNSIGNED_INT_24_8; break;
-    //default: I_FatalError("Unknown format passed to FGLRenderBuffers.Create2DTexture");
-    //}
 }
 
 id<MTLTexture> MlRenderBuffers::Create2DMultisampleTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations)
@@ -130,39 +103,33 @@ id<MTLTexture> MlRenderBuffers::Create2DMultisampleTexture(const char *name, MTL
    // printf(name);
    // printf(" is created(Create2DMultisampleTexture)\n");
     id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    [desc release];
     return dummy;
 }
 
 id<MTLTexture> MlRenderBuffers::CreateFrameBuffer(const char *name, id<MTLTexture> colorbuffer)
 {
-     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
-
-    // desc.width = width;
-    // desc.height = height;
+    MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.usage = MTLTextureUsageRenderTarget;
-     desc.storageMode = MTLStorageModePrivate;
+    desc.storageMode = MTLStorageModePrivate;
        
-     //printf(name);
-     //printf(" is created(CreateFrameBuffer)\n");
-     id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
-     return dummy;
+    id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    [desc release];
+    return dummy;
 }
 
-id<MTLTexture> MlRenderBuffers::CreateRenderBuffer(const char *name, MTLPixelFormat format, int width, int height, const void* data /*= nullptr*/)
+static id<MTLTexture> CreateRenderBuffer(const char *name, int width, int height, const void* data /* = nullptr */)
 {
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = width;
     desc.height = height;
-    desc.pixelFormat = format;
     desc.textureType = MTLTextureType2D;
     desc.storageMode = MTLStorageModePrivate;
     desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
+    desc.pixelFormat = MTLPixelFormatRGBA16Float;
     
-    
-    
-    // printf(name);
-    // printf(" is created/n");
     id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    [desc release];
     return dummy;
 }
 
@@ -175,11 +142,9 @@ id<MTLTexture> MlRenderBuffers::CreateDepthTexture(const char *name, MTLPixelFor
     desc.storageMode = MTLStorageModePrivate;
     desc.usage = MTLTextureUsageRenderTarget;
     desc.textureType = MTLTextureType2D;
-    //desc.sampleCount = samples;
     
-   // printf(name);
-   // printf(" is created(Create2DMultisampleTexture)\n");
     id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    [desc release];
     return dummy;
 }
 

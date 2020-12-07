@@ -15,6 +15,7 @@
 #include "metal/system/ml_buffer.h"
 #include "metal/renderer/ml_renderer.h"
 #include "metal/renderer/ml_renderstate.h"
+#include "metal/renderer/ml_renderbuffers.h"
 EXTERN_CVAR(Bool, r_drawvoxels)
 EXTERN_CVAR(Int, gl_tonemap)
 void Draw2D(F2DDrawer *drawer, FRenderState &state);
@@ -53,22 +54,39 @@ void MetalFrameBuffer::BeginFrame()
     {
         MLRenderer->BeginFrame();
         MetalCocoaView* const window = GetMacWindow();
-        //printf("getDrawable\n");
         dispatch_semaphore_wait(MLRenderer->semaphore, DISPATCH_TIME_FOREVER);
         MLRenderer->mScreenBuffers->mDrawable = [window getDrawable];
-        //printf("gotDrawable\n");
-        
         if (true)
         {
+            
             renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
+            @autoreleasepool
+            {
             if (MLRenderer->mScreenBuffers)
             {
-                MLRenderer->mScreenBuffers->mSceneFB = MLRenderer->mScreenBuffers->mDrawable.texture;
+                if (MLRenderer->mScreenBuffers->mSceneFB == nil)
+                {
+                    MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
+                    desc.width  = GetMetalFrameBuffer()->GetClientWidth(); //mOutputLetterbox.width;
+                    desc.height = GetMetalFrameBuffer()->GetClientHeight();//mOutputLetterbox.height;
+                    desc.pixelFormat = MTLPixelFormatRGBA16Float;
+                    desc.storageMode = MTLStorageModePrivate;
+                    desc.usage = MTLTextureUsageRenderTarget;
+                    desc.textureType = MTLTextureType2D;
+
+                    MLRenderer->mScreenBuffers->mSceneFB = [device newTextureWithDescriptor:desc];
+                    renderPassDescriptor.colorAttachments[0].texture     = MLRenderer->mScreenBuffers->mSceneFB;//MLRenderer->mScreenBuffers->mDrawable.texture;
+                    [desc release];
+                }
+                else
+                {
+                    renderPassDescriptor.colorAttachments[0].texture     = MLRenderer->mScreenBuffers->mSceneFB;//MLRenderer->mScreenBuffers->mDrawable.texture;
+                }
                 
                 // Color render target
-                renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mDrawable.texture;
-                renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+                renderPassDescriptor.colorAttachments[0].loadAction  = MTLLoadActionClear;
                 renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
+                
                 // Depth render target
                 renderPassDescriptor.depthAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
                 renderPassDescriptor.stencilAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
@@ -80,11 +98,15 @@ void MetalFrameBuffer::BeginFrame()
             //renderPassDescriptor.stencilAttachment.clearStencil = 0.f;
             auto fb = GetMetalFrameBuffer();
             
-            renderPassDescriptor.renderTargetWidth = 1440;//fb->GetClientWidth();
-            renderPassDescriptor.renderTargetHeight = 900;//fb->GetClientHeight();
+            auto val1 = fb->GetClientWidth();
+            auto val2 = fb->GetClientHeight();
+            
+            renderPassDescriptor.renderTargetWidth  = mOutputLetterbox.width;
+            renderPassDescriptor.renderTargetHeight = mOutputLetterbox.height;
             renderPassDescriptor.defaultRasterSampleCount = 1;
     
             needCreateRenderState = false;
+        }
         }
         
         MLRenderer->ml_RenderState->CreateRenderState(renderPassDescriptor);
