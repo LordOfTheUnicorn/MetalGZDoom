@@ -252,7 +252,7 @@ void MlRenderState::InitialaziState()
 {
     Reset();
     NSError* error = nil;
-    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn/git/MetalGZDoom/metalShaders/doomMetallib.metallib" error:&error];
+    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib" error:&error];
     if (VShader == nil)        VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
     if (FShader  == nil)       FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
     if (commandQueue == nil)   commandQueue = [device newCommandQueueWithMaxCommandBufferCount:512];
