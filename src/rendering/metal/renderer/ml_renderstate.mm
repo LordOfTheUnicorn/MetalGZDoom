@@ -750,8 +750,6 @@ void MlRenderState::EndFrame()
     
     [renderCommandEncoder endEncoding];
     [commandBuffer commit];
-    [commandBuffer release];
-    [renderCommandEncoder release];
     //[commandBuffer waitUntilCompleted];
     currentIndexVB = currentIndexVB == 2 ? 0 : currentIndexVB + 1;
     offsetVB[0] = offsetVB[1] = 0;
