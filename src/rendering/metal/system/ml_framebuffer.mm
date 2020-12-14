@@ -1,6 +1,6 @@
 #include "ml_framebuffer.h"
 
-#include "v_video.h"
+//#include "v_video.h"
 #include "r_videoscale.h"
 
 #include "hwrenderer/data/flatvertices.h"
@@ -19,7 +19,7 @@
 EXTERN_CVAR(Bool, r_drawvoxels)
 EXTERN_CVAR(Int, gl_tonemap)
 void Draw2D(F2DDrawer *drawer, FRenderState &state);
-MetalCocoaView* GetMacWindow();
+//MetalCocoaView* GetMacWindow();
 
 namespace MetalRenderer
 {
@@ -53,34 +53,34 @@ void MetalFrameBuffer::BeginFrame()
     if (MLRenderer != nullptr)
     {
         MLRenderer->BeginFrame();
-        MetalCocoaView* const window = GetMacWindow();
+        //MetalCocoaView* const window = GetMacWindow();
         dispatch_semaphore_wait(MLRenderer->semaphore, DISPATCH_TIME_FOREVER);
-        MLRenderer->mScreenBuffers->mDrawable = [window getDrawable];
+        //MLRenderer->mScreenBuffers->mDrawable = [window getDrawable];
         if (true)
         {
             
             renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-            @autoreleasepool
+            //@autoreleasepool
             {
             if (MLRenderer->mScreenBuffers)
             {
                 if (MLRenderer->mScreenBuffers->mSceneFB == nil)
                 {
                     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
-                    desc.width  = GetMetalFrameBuffer()->GetClientWidth(); //mOutputLetterbox.width;
-                    desc.height = GetMetalFrameBuffer()->GetClientHeight();//mOutputLetterbox.height;
+                    desc.width  = GetMetalFrameBuffer()->GetClientWidth();
+                    desc.height = GetMetalFrameBuffer()->GetClientHeight();
                     desc.pixelFormat = MTLPixelFormatRGBA16Float;
                     desc.storageMode = MTLStorageModePrivate;
-                    desc.usage = MTLTextureUsageRenderTarget;
+                    desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
                     desc.textureType = MTLTextureType2D;
 
                     MLRenderer->mScreenBuffers->mSceneFB = [device newTextureWithDescriptor:desc];
-                    renderPassDescriptor.colorAttachments[0].texture     = MLRenderer->mScreenBuffers->mSceneFB;//MLRenderer->mScreenBuffers->mDrawable.texture;
+                    renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mSceneFB;//MLRenderer->mScreenBuffers->mDrawable.texture;
                     [desc release];
                 }
                 else
                 {
-                    renderPassDescriptor.colorAttachments[0].texture     = MLRenderer->mScreenBuffers->mSceneFB;//MLRenderer->mScreenBuffers->mDrawable.texture;
+                    renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mSceneFB;//MLRenderer->mScreenBuffers->mDrawable.texture;
                 }
                 
                 // Color render target
@@ -94,15 +94,15 @@ void MetalFrameBuffer::BeginFrame()
             
             renderPassDescriptor.depthAttachment.loadAction = MTLLoadActionClear;
             renderPassDescriptor.depthAttachment.clearDepth = 1.f;
-            //renderPassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
-            //renderPassDescriptor.stencilAttachment.clearStencil = 0.f;
+            renderPassDescriptor.stencilAttachment.loadAction = MTLLoadActionClear;
+            renderPassDescriptor.stencilAttachment.clearStencil = 0.f;
             auto fb = GetMetalFrameBuffer();
             
             auto val1 = fb->GetClientWidth();
             auto val2 = fb->GetClientHeight();
             
-            renderPassDescriptor.renderTargetWidth  = mOutputLetterbox.width;
-            renderPassDescriptor.renderTargetHeight = mOutputLetterbox.height;
+            renderPassDescriptor.renderTargetWidth = GetMetalFrameBuffer()->GetClientWidth();
+            renderPassDescriptor.renderTargetHeight = GetMetalFrameBuffer()->GetClientHeight();
             renderPassDescriptor.defaultRasterSampleCount = 1;
     
             needCreateRenderState = false;
@@ -221,7 +221,7 @@ void MetalFrameBuffer::Update()
     MLRenderer->Flush();
     Flush3D.Unclock();
     //Swap();
-    MLRenderer->ml_RenderState->EndFrame();
+    //MLRenderer->ml_RenderState->EndFrame();
     Super::Update();
 }
 

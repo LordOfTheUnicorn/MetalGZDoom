@@ -429,7 +429,6 @@ public:
 		{
             if (fb == nullptr)
                 fb = new MetalRenderer::MetalFrameBuffer(nullptr, fullscreen);
-           
             const NSRect rect = [ms_window contentRectForFrameRect:[ms_window frame]];
             MetalRenderer::m_view = [[MetalCocoaView alloc] initWithFrame:rect device:MetalRenderer::device vsync:YES Str:@"NewView"];
             [ms_window setContentView:(NSView*)MetalRenderer::m_view];
@@ -563,12 +562,14 @@ int SystemBaseFrameBuffer::GetTitleBarHeight() const
 
 int SystemBaseFrameBuffer::GetClientWidth()
 {
+    return 1440;
     const int clientWidth = I_GetContentViewSize(m_window).width;
 	return clientWidth > 0 ? clientWidth : GetWidth();
 }
 
 int SystemBaseFrameBuffer::GetClientHeight()
 {
+    return 900;
     const int clientHeight = I_GetContentViewSize(m_window).height;
 	return clientHeight > 0 ? clientHeight : GetHeight();
 }

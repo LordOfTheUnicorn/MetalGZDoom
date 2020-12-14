@@ -24,8 +24,9 @@
 ** Renderer interface
 **
 */
+#include "v_video.h"
+#include "r_videoscale.h"
 
-//#include "gl_load/gl_system.h"
 #include "files.h"
 #include "v_video.h"
 #include "m_png.h"
@@ -40,10 +41,8 @@
 #include "swrenderer/r_swscene.h"
 #include "hwrenderer/utility/hw_clock.h"
 
-//#include "gl_load/gl_interface.h"
 #include "metal/system/ml_framebuffer.h"
 #include "hwrenderer/utility/hw_cvars.h"
-//#include "gl/system/gl_debug.h"
 #include "metal/renderer/ml_renderer.h"
 #include "metal/renderer/ml_RenderState.h"
 #include "metal/renderer/ml_renderbuffers.h"
@@ -60,7 +59,6 @@
 #include "hwrenderer/postprocessing/hw_postprocess_cvars.h"
 #include "r_videoscale.h"
 #include "r_data/models/models.h"
-//#include "gl/renderer/gl_postprocessstate.h"
 #include "metal/system/ml_buffer.h"
 #include "metal/system/ml_framebuffer.h"
 
@@ -68,7 +66,7 @@
 
 EXTERN_CVAR(Int, screenblocks)
 EXTERN_CVAR(Bool, cl_capfps)
-
+MetalCocoaView* GetMacWindow();
 extern bool NoInterpolateView;
 extern bool vid_hdr_active;
 
@@ -362,8 +360,8 @@ void MlRenderer::RenderTextureView(FCanvasTexture *tex, AActor *Viewpoint, doubl
     
     
     
-    bounds.width  = 1440;//mltex->GetWidth();
-    bounds.height = 900;//mltex->GetHeight();
+    bounds.width  = mltex->GetWidth();
+    bounds.height = mltex->GetHeight();
 
     FRenderViewpoint texvp;
     RenderViewpoint(texvp, Viewpoint, &bounds, FOV, (float)width / height, (float)width / height, false, false);
@@ -393,11 +391,162 @@ void MlRenderer::PostProcessScene(int fixedcm, const std::function<void()> &afte
     hw_postprocess.Pass2(&renderstate, fixedcm, sceneWidth, sceneHeight);
 }
 
+typedef struct
+{
+    float  InvGamma;
+    float  Contrast;
+    float  Brightness;
+    float  Saturation;
+    int    GrayFormula;
+    int    WindowPositionParity;
+    vector_float2 UVScale;
+    vector_float2 UVOffset;
+    float  ColorScale;
+    int    HdrMode;
+} secondUniforms;
+
 void MlRenderer::RenderScreenQuad()
 {
-    //auto buffer = static_cast<MlVertexBuffer *>(screen->mVertexData->GetBufferObjects().first);
+    MTLRenderPassDescriptor*     passDesc = [MTLRenderPassDescriptor renderPassDescriptor];
+    MTLRenderPipelineDescriptor* pipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
+    MTLVertexDescriptor *vertexDesc = [[MTLVertexDescriptor alloc] init];
+    
+    MetalCocoaView* const window = GetMacWindow();
+    MLRenderer->mScreenBuffers->mDrawable = [window getDrawable];
+    
+    // Color render target
+    passDesc.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mDrawable.texture;
+    passDesc.colorAttachments[0].loadAction  = MTLLoadActionClear;
+    passDesc.colorAttachments[0].storeAction = MTLStoreActionDontCare;
+    
+    //Depth render target
+    passDesc.depthAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
+    passDesc.stencilAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
+    
+    passDesc.depthAttachment.loadAction = MTLLoadActionClear;
+    passDesc.depthAttachment.clearDepth = 1.f;
+    passDesc.stencilAttachment.loadAction = MTLLoadActionClear;
+    passDesc.stencilAttachment.clearStencil = 0.f;
+    
+    passDesc.renderTargetWidth  = GetMetalFrameBuffer()->GetClientWidth();//mOutputLetterbox.width;
+    passDesc.renderTargetHeight = GetMetalFrameBuffer()->GetClientHeight();//mOutputLetterbox.height;
+    passDesc.defaultRasterSampleCount = 1;
+    
+    [MLRenderer->ml_RenderState->renderCommandEncoder endEncoding];
+    
+    MLRenderer->ml_RenderState->renderCommandEncoder = [MLRenderer->ml_RenderState->commandBuffer renderCommandEncoderWithDescriptor:passDesc];
+    MLRenderer->ml_RenderState->renderCommandEncoder.label = @"RenderScreenQuad";
+    [MLRenderer->ml_RenderState->renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
+    [MLRenderer->ml_RenderState->renderCommandEncoder setCullMode:MTLCullModeNone];
+    [MLRenderer->ml_RenderState->renderCommandEncoder setViewport:(MTLViewport)
+    {   0.0, 0.0,
+        (double)GetMetalFrameBuffer()->GetClientWidth(), (double)GetMetalFrameBuffer()->GetClientHeight(),
+        0.0, 1.0
+    }];
+    
+    pipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+    pipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    pipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
+    pipelineDesc.colorAttachments[0].alphaBlendOperation         = MTLBlendOperationAdd;
+    pipelineDesc.colorAttachments[0].sourceAlphaBlendFactor      = MTLBlendFactorSourceAlpha;
+    pipelineDesc.colorAttachments[0].blendingEnabled = YES;
+    pipelineDesc.colorAttachments[0].destinationRGBBlendFactor   = MTLBlendFactorOneMinusSourceAlpha;
+    pipelineDesc.colorAttachments[0].rgbBlendOperation           = MTLBlendOperationAdd;
+    // fix it
+    pipelineDesc.colorAttachments[0].destinationAlphaBlendFactor = MTLBlendFactorOneMinusSourceAlpha;
+    
+    //########################ATTRIBUTE 0#########################
+    vertexDesc.attributes[0].format = MTLVertexFormatFloat3;
+    vertexDesc.attributes[0].offset = 0;
+    vertexDesc.attributes[0].bufferIndex = 0;
+    //#######################ATTRIBUTE 1#########################
+    vertexDesc.attributes[1].format = MTLVertexFormatFloat2;
+    vertexDesc.attributes[1].offset = 0;
+    vertexDesc.attributes[1].bufferIndex = 1;
+    //#######################LAYOUTS#############################
+    vertexDesc.layouts[0].stride = sizeof(vector_float4);
+    vertexDesc.layouts[0].stepRate = 1;
+    vertexDesc.layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+    
+    vertexDesc.layouts[1].stride = 8;
+    vertexDesc.layouts[1].stepRate = 1;
+    vertexDesc.layouts[1].stepFunction = MTLVertexStepFunctionPerVertex;
+    //##############################################################
+    NSError* error = nil;
+    id <MTLLibrary> _defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib" error:&error];
+    if (error)
+        assert(true);
+    id <MTLFunction> vs = [_defaultLibrary newFunctionWithName:@"vertexSecondRT"];
+    id <MTLFunction> fs = [_defaultLibrary newFunctionWithName:@"fragmentSecondRT"];
+    
+    pipelineDesc.label = @"Second RT";
+    pipelineDesc.vertexFunction = vs;
+    pipelineDesc.fragmentFunction = fs;
+    pipelineDesc.vertexDescriptor = vertexDesc;
+    pipelineDesc.sampleCount = 1;
+    
+    if (MLRenderer->ml_RenderState->pipelineState[PIPELINE_STATE] == nil)
+        MLRenderer->ml_RenderState->pipelineState[PIPELINE_STATE] = [device newRenderPipelineStateWithDescriptor:pipelineDesc  error:&error];
+    if(error)
+    {
+        NSLog(@"Failed to created pipeline state, error %@", error);
+    }
+    secondUniforms uniforms;
+    uniforms.Brightness = mPresentShader->Brightness;
+    uniforms.ColorScale = mPresentShader->ColorScale;
+    uniforms.Contrast = mPresentShader->Contrast;
+    uniforms.InvGamma = mPresentShader->InvGamma;
+    uniforms.Saturation = mPresentShader->Saturation;
+    uniforms.GrayFormula = mPresentShader->GrayFormula;
+    uniforms.WindowPositionParity = mPresentShader->WindowPositionParity;
+    uniforms.UVScale = {mPresentShader->Scale.X, mPresentShader->Scale.Y};
+    uniforms.UVOffset = {mPresentShader->Offset.X, mPresentShader->Offset.Y};
+    uniforms.HdrMode = mPresentShader->HdrMode;
+    
+    [MLRenderer->ml_RenderState->renderCommandEncoder setRenderPipelineState:MLRenderer->ml_RenderState->pipelineState[PIPELINE_STATE]];
+    MLRenderer->mScreenBuffers->BindDitherTexture(1);
+    
+    vector_float4 inputPIP[4] =
+    {
+        vector_float4{-1, -1, 0, 1},
+        vector_float4{-1, 1 , 0, 1},
+        vector_float4{1 , -1, 0, 1},
+        vector_float4{1 , 1 , 0, 1}
+    };
+    
+    vector_float2 inputUV[4] =
+    {        
+        vector_float2{1, 1},
+        vector_float2{1, 0},
+        vector_float2{0, 1},
+        vector_float2{0, 0},
+    };
+    
+    [MLRenderer->ml_RenderState->renderCommandEncoder setVertexBytes:&inputPIP length:sizeof(vector_float4)*4 atIndex:0];
+    [MLRenderer->ml_RenderState->renderCommandEncoder setVertexBytes:&inputUV  length:sizeof(vector_float2)*4 atIndex:1];
+    
+    [MLRenderer->ml_RenderState->renderCommandEncoder setFragmentBytes:&uniforms length:sizeof(secondUniforms)      atIndex:0];
+    [MLRenderer->ml_RenderState->renderCommandEncoder setFragmentTexture:MLRenderer->mScreenBuffers->mSceneFB       atIndex:0];
+    [MLRenderer->ml_RenderState->renderCommandEncoder setFragmentTexture:MLRenderer->mScreenBuffers->mDitherTexture atIndex:1];
+    
+    int indexes[6] {0,1,2, 1,3,2};
+    id<MTLBuffer> buff = [device newBufferWithBytes:indexes length:sizeof(int) * 6 options:MTLResourceStorageModeShared];
+        
+    [MLRenderer->ml_RenderState->renderCommandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                                                                 indexCount:6
+                                                                  indexType:MTLIndexTypeUInt32
+                                                                indexBuffer:buff
+                                                          indexBufferOffset:0];
+    [buff release];
+    //[MLRenderer->ml_RenderState->renderCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
+    //                                                     vertexStart:0
+    //                                                     vertexCount:4];
+      MLRenderer->ml_RenderState->EndFrame();
+
     //buffer->Bind(nullptr);
-    //glDrawArrays(GL_TRIANGLE_STRIP, FFlatVertexBuffer::PRESENT_INDEX, 4);
+    //glDrawArrays(GL_TRIANGLE_STRIP, FFlatVertexBvffer::PRESENT_INDEX, 4);
+   // [passDesc release];
+   // [vertexDesc release];
 }
 
 void MetalFrameBuffer::CleanForRestart()

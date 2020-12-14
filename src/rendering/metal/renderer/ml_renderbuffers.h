@@ -49,19 +49,20 @@ public:
     id<MTLTexture> Shadowmap;
    // MlSamplerManager ShadowmapSampler;
     // Buffers for the scene
-    id<MTLTexture> mSceneMultisampleTex;
-    id<MTLTexture> mSceneDepthStencilTex;
-    id<MTLTexture> mSceneDepthTex;
-    id<MTLTexture> mSceneFogTex;
-    id<MTLTexture> mSceneNormalTex;
-    id<MTLTexture> mSceneMultisampleBuf;
-    id<MTLTexture> mSceneDepthStencilBuf;
-    id<MTLTexture> mSceneFogBuf;
-    id<MTLTexture> mSceneNormalBuf;
-    id<MTLTexture> mSceneFB;
+    id<MTLTexture> mSceneMultisampleTex = nil;
+    id<MTLTexture> mSceneDepthStencilTex = nil;
+    id<MTLTexture> mSceneDepthTex = nil;
+    id<MTLTexture> mSceneFogTex = nil;
+    id<MTLTexture> mSceneNormalTex = nil;
+    id<MTLTexture> mSceneMultisampleBuf = nil;
+    id<MTLTexture> mSceneDepthStencilBuf = nil;
+    id<MTLTexture> mSceneFogBuf = nil;
+    id<MTLTexture> mSceneNormalBuf = nil;
+    id<MTLTexture> mSceneFB = nil;
     id<CAMetalDrawable> mDrawable;
-    id<MTLTexture> mSceneDataFB;
+    id<MTLTexture> mSceneDataFB = nil;
     bool mSceneUsesTextures = false;
+    id<MTLTexture> mDitherTexture = nil;
 
 private:
     void CreatePipeline(int width, int height);
@@ -92,8 +93,6 @@ private:
     id<MTLTexture>      m_DisplayBuffers[2];
     uint                m_CurrentBufferId;
     //id<CAMetalDrawable> m_Drawable;
-    
-    id<MTLTexture> mDitherTexture;
 };
 
 class MLPPRenderState : public PPRenderState

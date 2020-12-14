@@ -252,7 +252,8 @@ void MlRenderState::InitialaziState()
 {
     Reset();
     NSError* error = nil;
-    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib" error:&error];
+    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib"
+                                                                     error:&error];
     if (VShader == nil)        VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
     if (FShader  == nil)       FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
     if (commandQueue == nil)   commandQueue = [device newCommandQueueWithMaxCommandBufferCount:512];
@@ -273,9 +274,6 @@ void MlRenderState::CreateRenderPipelineState()
     vertexDesc[0].attributes[0].format = MTLVertexFormatFloat3;
     vertexDesc[0].attributes[0].offset = 0;
     vertexDesc[0].attributes[0].bufferIndex = 0;
-    vertexDesc[0].layouts[0].stride = 24;
-    vertexDesc[0].layouts[0].stepRate = 1;
-    vertexDesc[0].layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
     //##########################ATTRIBUTE 1#########################
     vertexDesc[0].attributes[1].format = MTLVertexFormatFloat2;
     vertexDesc[0].attributes[1].offset = 12;
@@ -284,19 +282,25 @@ void MlRenderState::CreateRenderPipelineState()
     vertexDesc[0].attributes[2].format = MTLVertexFormatUChar4Normalized_BGRA;
     vertexDesc[0].attributes[2].offset = 20;
     vertexDesc[0].attributes[2].bufferIndex = 0;
+    //##########################LAYOUTS#############################
+    vertexDesc[0].layouts[0].stride = 24;
+    vertexDesc[0].layouts[0].stepRate = 1;
+    vertexDesc[0].layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
     //##############################################################
     
     //##########################ATTRIBUTE 0#########################
     vertexDesc[1].attributes[0].format = MTLVertexFormatFloat3;
     vertexDesc[1].attributes[0].offset = 0;
     vertexDesc[1].attributes[0].bufferIndex = 0;
-    vertexDesc[1].layouts[0].stride = 20;
-    vertexDesc[1].layouts[0].stepRate = 1;
-    vertexDesc[1].layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
     //##########################ATTRIBUTE 1#########################
     vertexDesc[1].attributes[1].format = MTLVertexFormatFloat2;
     vertexDesc[1].attributes[1].offset = 12;
     vertexDesc[1].attributes[1].bufferIndex = 0;
+    //##########################LAYOUTS#############################
+    vertexDesc[1].layouts[0].stride = 20;
+    vertexDesc[1].layouts[0].stepRate = 1;
+    vertexDesc[1].layouts[0].stepFunction = MTLVertexStepFunctionPerVertex;
+    //##############################################################
         
     renderPipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatRGBA16Float;//MTLPixelFormatBGRA8Unorm_sRGB;
     renderPipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
@@ -409,6 +413,8 @@ void MlRenderState::CreateRenderPipelineState()
             index++;
         }
     }
+    
+    pipelineState[PIPELINE_STATE] = nil;
 }
 
 bool MlRenderState::ApplyShader()
@@ -665,7 +671,7 @@ void MlRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescri
 {
     commandBuffer = [commandQueue commandBuffer];
     renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-    renderCommandEncoder.label = @"renderCommandEncoder";
+    renderCommandEncoder.label = @"SceneFB";
     [renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
     [renderCommandEncoder setCullMode:MTLCullModeNone];
     [renderCommandEncoder setViewport:(MTLViewport)
@@ -903,7 +909,7 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
             //printf("REALLY SIZE = %lu\n", (mtlBuffer->mStride * count));
             //printf("offsetVB[1] = %lu\n", offsetVB[1]);
             offsetVB[1] += mtlBuffer->mStride * count;
-            [renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:/*index*/0 vertexCount:count];
+            [renderCommandEncoder drawPrimitives:dt2ml[dt] vertexStart:0 vertexCount:count];
         }
         [renderCommandEncoder popDebugGroup];
         
@@ -1112,14 +1118,14 @@ void MlRenderState::SetScissor(int x, int y, int w, int h)
 
 void MlRenderState::SetViewport(int x, int y, int w, int h)
 {
-    m_Viewport.originX = x;
-    m_Viewport.originY = y;
-    m_Viewport.height = h;
-    m_Viewport.width = w;
-    m_Viewport.znear = 0.0f;
-    m_Viewport.zfar = 1.0f;
-    
-    [renderCommandEncoder setViewport:m_Viewport];
+    //m_Viewport.originX = x;
+    //m_Viewport.originY = y;
+    //m_Viewport.height = h;
+    //m_Viewport.width = w;
+    //m_Viewport.znear = 0.0f;
+    //m_Viewport.zfar = 1.0f;
+    //
+    //[renderCommandEncoder setViewport:m_Viewport];
 }
 
 void MlRenderState::EnableDepthTest(bool on)

@@ -539,9 +539,15 @@ float3 ProcessMaterialLight(Material material, float3 color, float4 uDynLightCol
     return material.Base.rgb * clamp(color + desaturate(uDynLightColor, 0).rgb, 0.0, 1.4);
 }
 
+//float4 ProcessLight(Material material, float4 color)
+//{
+//    return color;
+//}
+
 float4 ProcessLight(Material material, float4 color)
 {
-    return color;
+    float4 brightpix = (material.Bright);
+    return float4(min(color.rgb + brightpix.rgb, 1.0), color.a);
 }
 
 //===========================================================================
@@ -728,7 +734,7 @@ fragment float4 FragmentMainSimple(outVertex in [[stage_in]], texture2d<float> t
     float4 frag = material.Base;
 
     //in.vColor = uniforms.vColor;
-    if (uniforms.uFogEnabled != -3)    // check for special 2D 'fog' mode.
+    if (0)//(uniforms.uFogEnabled != -3)    // check for special 2D 'fog' mode.
     {
         float fogdist = 0.0;
         float fogfactor = 0.0;
@@ -773,7 +779,7 @@ fragment float4 FragmentMainSimple(outVertex in [[stage_in]], texture2d<float> t
             float4 cm = (uniforms.uObjectColor + gray * (uniforms.uAddColor - uniforms.uObjectColor)) * 2;
             frag = float4(clamp(cm.rgb, 0.0, 1.0), frag.a);
         }
-        frag = frag * in.vColor;//ProcessLight(material, in.vColor);
+        frag = frag * ProcessLight(material, in.vColor);
         frag.rgb = frag.rgb + uniforms.uFogColor.rgb;
     }
     
@@ -918,7 +924,7 @@ float4 dodesaturate(float4 texel, float factor)
 // RGBA8
 typedef struct
 {
-    float4 PositionInProjection [[attribute(0)]];
+    float3 PositionInProjection [[attribute(0)]];
     float2 UV                   [[attribute(1)]];;
 } inSecondVertex;
 
@@ -945,7 +951,7 @@ typedef struct
 vertex outSecondVertex vertexSecondRT(inSecondVertex in [[stage_in]])
 {
     outSecondVertex out;
-    out.pos = in.PositionInProjection;
+    out.pos = float4(in.PositionInProjection, 1.f);
     out.TexCoord = in.UV;
     return out;
 }
@@ -953,7 +959,6 @@ vertex outSecondVertex vertexSecondRT(inSecondVertex in [[stage_in]])
 float4 ApplyGamma(float4 c, secondUniforms uniform)
 {
     c.rgb = min(c.rgb, float3(2.0)); // for HDR mode - prevents stacked translucent sprites (such as plasma) producing way too bright light
-
     float3 valgray;
     if (uniform.GrayFormula == 0)
         valgray = float3(c.r + c.g + c.b) * (1 - uniform.Saturation) / 3 + c.rgb * uniform.Saturation;
@@ -988,20 +993,14 @@ float4 ApplyHdrMode(float4 c, int HdrMode)
         return sRGBtoLinear(c);
 }
 
-typedef struct
-{
-    float4 color [[color(1)]];
-}outSecondPixel;
 
-fragment outSecondPixel fragmentSecondRT(outSecondVertex in [[stage_in]],constant secondUniforms& uniform [[buffer(0)]], texture2d<half> InputTexture [[texture(0)]], texture2d<half> DitherTexture [[texture(1)]])
+fragment float4 fragmentSecondRT(outSecondVertex in [[stage_in]],constant secondUniforms& uniform [[buffer(0)]], texture2d<half> InputTexture [[texture(0)]], texture2d<half> DitherTexture [[texture(1)]])
 {
-    outSecondPixel out;
     constexpr sampler colorSampler(mip_filter::linear, mag_filter::linear, min_filter::linear);
     float4 FragColor =
     Dither(ApplyHdrMode(ApplyGamma(float4(InputTexture.sample(colorSampler, uniform.UVOffset + in.TexCoord * uniform.UVScale)), uniform), uniform.HdrMode)
            ,uniform
            ,DitherTexture
            ,in.TexCoord);
-    out.color = FragColor;
-    return out;
+    return FragColor;
 }

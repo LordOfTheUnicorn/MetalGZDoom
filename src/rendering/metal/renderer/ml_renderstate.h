@@ -38,7 +38,7 @@
 #include "metal/system/MetalCocoaView.h"
 
 #define SIZE_DEPTH_DESC 18
-#define PIPELINE_STATE 56
+#define PIPELINE_STATE 57
 
 namespace MetalRenderer
 {
@@ -110,11 +110,9 @@ class MlRenderState : public FRenderState
     IIndexBuffer *mCurrentIndexBuffer;
     MlRenderBuffers *buffers;
     MTLViewport m_Viewport;
-    id <MTLLibrary> defaultLibrary;
     id <MTLFunction> VShader;
     id <MTLFunction> FShader;
     MTLVertexDescriptor *vertexDesc[VATTR_MAX];
-    id<MTLRenderPipelineState> pipelineState[PIPELINE_STATE];
     RenderPipeline renderPipeline[PIPELINE_STATE];
     int currentState = 0;
 
@@ -147,6 +145,8 @@ class MlRenderState : public FRenderState
 
 
 public:
+    id<MTLRenderPipelineState> pipelineState[PIPELINE_STATE];
+    id <MTLLibrary> defaultLibrary;
     MlShader *activeShader;
     int val = 0;
     id <MTLCommandQueue> commandQueue;

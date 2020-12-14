@@ -69,7 +69,21 @@ void MlRenderBuffers::BindDitherTexture(int texunit)
              .1015625, .3515625, .2265625, .4765625, .1171875, .3671875, .2421875, .4921875,
              .8515625, .6015625, .9765625, .7265625, .8671875, .6171875, .9921875, .7421875,
         };
-        mDitherTexture = Create2DTexture("DitherTexture", MTLPixelFormatRG32Float, 8, 8, data);
+        //mDitherTexture = Create2DTexture("DitherTexture", MTLPixelFormatRG32Float, 8, 8, data);
+        
+        MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
+        desc.width = 8;
+        desc.height = 8;
+        desc.pixelFormat = MTLPixelFormatRG32Float;
+        //desc.storageMode = MTLStorageModePrivate;
+        desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
+        
+        mDitherTexture = [device newTextureWithDescriptor:desc];
+        
+        [desc release];
+        
+        MTLRegion region = MTLRegionMake2D(0, 0, 8, 8);
+        [mDitherTexture replaceRegion:region mipmapLevel:0 withBytes:data bytesPerRow:(8*8)];
     }
     MLRenderer->mSamplerManager->SetRepeatAddressMode(true);
 }
