@@ -377,6 +377,7 @@ typedef struct
     float4 uAddColor;
     float4 uDynLightColor;
     float timer;
+    bool mTextureEnabled;
     
     //#define uLightLevel uLightAttr.a
     //#define uFogDensity uLightAttr.b
@@ -519,10 +520,14 @@ float4 ProcessTexel(float4 vTexCoord, float4 uObjectColor, float4 uObjectColor2,
 //===========================================================================
 
 Material ProcessMaterial(float4 vTexCoord, float4 uObjectColor, float4 uObjectColor2, int uTextureMode, float3 gradientdist, float4 uAddColor, float uDesaturationFactor, texture2d<float> tex, float timer,
-                         float4 vWorldNormal, sampler sampl)
+                         float4 vWorldNormal, sampler sampl, bool textureEnabled)
 {
     Material material;
-    material.Base = ProcessTexel(vTexCoord, uObjectColor, uObjectColor2, uTextureMode, gradientdist, uAddColor, uDesaturationFactor, tex, timer, sampl);
+    if (textureEnabled)
+        material.Base = ProcessTexel(vTexCoord, uObjectColor, uObjectColor2, uTextureMode, gradientdist, uAddColor, uDesaturationFactor, tex, timer, sampl);
+    else
+        material.Base = desaturate(uObjectColor, uDesaturationFactor);
+    
     material.Normal = normalize(vWorldNormal.xyz);//ApplyNormalMap(vTexCoord.xy);
     return material;
 }
@@ -547,7 +552,10 @@ float3 ProcessMaterialLight(Material material, float3 color, float4 uDynLightCol
 float4 ProcessLight(Material material, float4 color)
 {
     float4 brightpix = (material.Bright);
-    return float4(min(color.rgb + brightpix.rgb, 1.0), color.a);
+    if (brightpix.x > 0 || brightpix.y > 0 || brightpix.z > 0 || brightpix.w > 0)
+        return float4(min(color.rgb + brightpix.rgb, 1.0), color.a);
+    else
+        return float4(min(color.rgb, 1.0), color.a);
 }
 
 //===========================================================================
@@ -730,11 +738,11 @@ float4 applyFog(float4 frag, float fogfactor, float4 uFogColor)
 fragment float4 FragmentMainSimple(outVertex in [[stage_in]], texture2d<float> tex [[texture(1)]], constant Uniforms& uniforms [[buffer(2)]], sampler sampl [[sampler(3)]])
 {
     
-    Material material = ProcessMaterial(in.vTexCoord, uniforms.uObjectColor, uniforms.uObjectColor2, uniforms.uTextureMode, in.gradientdist, uniforms.uAddColor, uniforms.uDesaturationFactor, tex, uniforms.timer, in.vWorldNormal, sampl);
+    Material material = ProcessMaterial(in.vTexCoord, uniforms.uObjectColor, uniforms.uObjectColor2, uniforms.uTextureMode, in.gradientdist, uniforms.uAddColor, uniforms.uDesaturationFactor, tex, uniforms.timer, in.vWorldNormal, sampl, uniforms.mTextureEnabled);
     float4 frag = material.Base;
-
-    //in.vColor = uniforms.vColor;
-    if (0)//(uniforms.uFogEnabled != -3)    // check for special 2D 'fog' mode.
+    in.vColor = float4(in.vColor.z, in.vColor.y, in.vColor.x, in.vColor.w);
+    
+    if (uniforms.uFogEnabled != -3)    // check for special 2D 'fog' mode.
     {
         float fogdist = 0.0;
         float fogfactor = 0.0;
@@ -789,11 +797,12 @@ fragment float4 FragmentMainSimple(outVertex in [[stage_in]], texture2d<float> t
 fragment float4 FragmentMainSimpleWithoutColor(outVertex in [[stage_in]], texture2d<float> tex [[texture(1)]], constant Uniforms& uniforms [[buffer(2)]], sampler sampl [[sampler(3)]])
 {
     
-    Material material = ProcessMaterial(in.vTexCoord, uniforms.uObjectColor, uniforms.uObjectColor2, uniforms.uTextureMode, in.gradientdist, uniforms.uAddColor, uniforms.uDesaturationFactor, tex, uniforms.timer, in.vWorldNormal, sampl);
+    Material material = ProcessMaterial(in.vTexCoord, uniforms.uObjectColor, uniforms.uObjectColor2, uniforms.uTextureMode, in.gradientdist, uniforms.uAddColor, uniforms.uDesaturationFactor, tex, uniforms.timer, in.vWorldNormal, sampl, uniforms.mTextureEnabled);
     float4 frag = material.Base;
 
-    in.vColor = uniforms.vColor;
-    if (uniforms.uFogEnabled != -3)    // check for special 2D 'fog' mode.
+    //in.vColor = float4(in.vColor.z, in.vColor.y, in.vColor.x, in.vColor.w);
+    in.vColor = float4(uniforms.vColor.z, uniforms.vColor.y, uniforms.vColor.x, uniforms.vColor.w);
+    if (0)//uniforms.uFogEnabled != -3)    // check for special 2D 'fog' mode.
     {
         float fogdist = 0.0;
         float fogfactor = 0.0;
@@ -838,7 +847,7 @@ fragment float4 FragmentMainSimpleWithoutColor(outVertex in [[stage_in]], textur
             float4 cm = (uniforms.uObjectColor + gray * (uniforms.uAddColor - uniforms.uObjectColor)) * 2;
             frag = float4(clamp(cm.rgb, 0.0, 1.0), frag.a);
         }
-        frag = frag * in.vColor;//ProcessLight(material, in.vColor);
+        frag = frag * ProcessLight(material, in.vColor);
         frag.rgb = frag.rgb + uniforms.uFogColor.rgb;
     }
     return frag;
@@ -997,10 +1006,10 @@ float4 ApplyHdrMode(float4 c, int HdrMode)
 fragment float4 fragmentSecondRT(outSecondVertex in [[stage_in]],constant secondUniforms& uniform [[buffer(0)]], texture2d<half> InputTexture [[texture(0)]], texture2d<half> DitherTexture [[texture(1)]])
 {
     constexpr sampler colorSampler(mip_filter::linear, mag_filter::linear, min_filter::linear);
-    float4 FragColor =
-    Dither(ApplyHdrMode(ApplyGamma(float4(InputTexture.sample(colorSampler, uniform.UVOffset + in.TexCoord * uniform.UVScale)), uniform), uniform.HdrMode)
-           ,uniform
-           ,DitherTexture
-           ,in.TexCoord);
+    float4 FragColor = float4(InputTexture.sample(colorSampler, uniform.UVOffset + in.TexCoord * uniform.UVScale).rgba);
+    //Dither(ApplyHdrMode(ApplyGamma(float4(InputTexture.sample(colorSampler, uniform.UVOffset + in.TexCoord * uniform.UVScale)), uniform), uniform.HdrMode)
+      //     ,uniform
+        //   ,DitherTexture
+          // ,in.TexCoord);
     return FragColor;
 }

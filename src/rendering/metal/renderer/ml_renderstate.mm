@@ -186,6 +186,7 @@ typedef struct
     vector_float4 uAddColor;
     vector_float4 uDynLightColor;
     float timer;
+    bool mTextureEnabled;
     
     //#define uLightLevel uLightAttr.a
     //#define uFogDensity uLightAttr.b
@@ -577,6 +578,7 @@ bool MlRenderState::ApplyShader()
     uniforms.uTextureMode = activeShader->muTextureMode.val;
     uniforms.uLightAttr = activeShader->muLightParms.val;
     uniforms.aColor = vector_float4{mStreamData.uVertexColor.X,mStreamData.uVertexColor.Y,mStreamData.uVertexColor.Z,mStreamData.uVertexColor.W};
+    uniforms.mTextureEnabled = mTextureEnabled;
     //glVertexAttrib4fv(VATTR_COLOR, &mStreamData.uVertexColor.X);
     //glVertexAttrib4fv(VATTR_NORMAL, &mStreamData.uVertexNormal.X);
     

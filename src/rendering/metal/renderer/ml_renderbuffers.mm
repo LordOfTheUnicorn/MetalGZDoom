@@ -247,8 +247,8 @@ void MlRenderBuffers::CreateSceneColor(int width, int height)//, VkSampleCountFl
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = width;
     desc.height = height;
-    desc.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
-    [SceneColor newTextureWithDescriptor:desc];
+    desc.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    SceneColor = [device newTextureWithDescriptor:desc];
     
     [desc release];
 }
@@ -262,7 +262,7 @@ void MlRenderBuffers::CreateSceneDepthStencil(int width, int height)//, VkSample
     desc.backFaceStencil.stencilCompareFunction = MTLCompareFunctionAlways;
     
     
-    [SceneDepthStencil newDepthStencilStateWithDescriptor:desc];
+    SceneDepthStencil = [device newDepthStencilStateWithDescriptor:desc];
     
     [desc release];
 }

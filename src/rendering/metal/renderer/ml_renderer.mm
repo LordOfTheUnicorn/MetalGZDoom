@@ -444,7 +444,7 @@ void MlRenderer::RenderScreenQuad()
         0.0, 1.0
     }];
     
-    pipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+    pipelineDesc.colorAttachments[0].pixelFormat = MTLPixelFormatBGRA8Unorm;
     pipelineDesc.depthAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
     pipelineDesc.stencilAttachmentPixelFormat = MTLPixelFormatDepth32Float_Stencil8;
     pipelineDesc.colorAttachments[0].alphaBlendOperation         = MTLBlendOperationAdd;
@@ -515,11 +515,11 @@ void MlRenderer::RenderScreenQuad()
     };
     
     vector_float2 inputUV[4] =
-    {        
-        vector_float2{1, 1},
-        vector_float2{1, 0},
+    {
         vector_float2{0, 1},
         vector_float2{0, 0},
+        vector_float2{1, 1},
+        vector_float2{1, 0}
     };
     
     [MLRenderer->ml_RenderState->renderCommandEncoder setVertexBytes:&inputPIP length:sizeof(vector_float4)*4 atIndex:0];

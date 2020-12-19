@@ -159,7 +159,7 @@ unsigned int MlHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w, 
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = rw;
     desc.height = rh;
-    desc.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+    desc.pixelFormat = MTLPixelFormatBGRA8Unorm;
     desc.storageMode = MTLStorageModeManaged;
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
     desc.textureType = MTLTextureType2D;
@@ -231,7 +231,7 @@ bool MlHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int 
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = rw;
     desc.height = rh;
-    desc.pixelFormat = MTLPixelFormatBGRA8Unorm_sRGB;
+    desc.pixelFormat = MTLPixelFormatBGRA8Unorm;
     desc.storageMode = MTLStorageModeManaged;
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
     desc.textureType = MTLTextureType2D;
