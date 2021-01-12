@@ -315,7 +315,7 @@ if( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 			set( CMAKE_CXX_FLAGS "-Wno-inconsistent-missing-override ${CMAKE_CXX_FLAGS}" )
 		endif()
 	endif()
-	set( CMAKE_C_FLAGS "-Wall -Wextra -Wno-unused -Wno-unused-parameter -Wno-missing-field-initializers -ffp-contract=off ${CMAKE_C_FLAGS}" )
+	set( CMAKE_C_FLAGS 	 "-Wall -Wextra -Wno-unused -Wno-unused-parameter -Wno-missing-field-initializers -ffp-contract=off ${CMAKE_C_FLAGS}" )
 	set( CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused -Wno-unused-parameter -Wno-missing-field-initializers -ffp-contract=off ${CMAKE_CXX_FLAGS}" )
 
 	# ARM processors (Raspberry Pi, et al) - enable ARM NEON support.
@@ -324,7 +324,7 @@ if( ZD_CMAKE_COMPILER_IS_GNUCXX_COMPATIBLE )
 		if (USE_ARMV8)
 			set( CMAKE_CXX_FLAGS "-mcpu=cortex-a53 -mfpu=neon-fp-armv8 -mtune=cortex-a53 -mhard-float -DNO_SSE ${CMAKE_CXX_FLAGS}" )
 		else ()
-			set( CMAKE_CXX_FLAGS "-mcpu=cortex-a7 -mfpu=neon-vfpv4 -mtune=cortex-a7 -mhard-float -DNO_SSE ${CMAKE_CXX_FLAGS}" )
+			set( CMAKE_CXX_FLAGS "-mcpu=cortex-a72 -mfpu=neon-vfpv4 -mtune=cortex-a72 -mhard-float -DNO_SSE ${CMAKE_CXX_FLAGS}" )
 		endif ()
 	endif ()
 
@@ -385,9 +385,9 @@ endif()
 CHECK_CXX_SOURCE_COMPILES("thread_local int i; int main() { i = 0; }"
 	HAVE_THREAD_LOCAL)
 
-if( NOT HAVE_THREAD_LOCAL )
-	message( SEND_ERROR "C++ compiler doesn't support thread_local storage duration specifier" )
-endif()
+#if( NOT HAVE_THREAD_LOCAL )
+#	message( SEND_ERROR "C++ compiler doesn't support thread_local storage duration specifier" )
+#endif()
 
 # Check for functions that may or may not exist.
 

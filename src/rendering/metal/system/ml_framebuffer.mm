@@ -85,7 +85,7 @@ void MetalFrameBuffer::BeginFrame()
                 
                 // Color render target
                 renderPassDescriptor.colorAttachments[0].loadAction  = MTLLoadActionClear;
-                renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionDontCare;
+                renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
                 
                 // Depth render target
                 renderPassDescriptor.depthAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;

@@ -48,7 +48,7 @@ THIS SOFTWARE.
  * compiling to deal with, which means we can't run the generation
  * program on the target.
  */
-#if defined(__x86_64__)
+#if defined(__x86_64__) || defined(__arm64__)
 #define IEEE_8087
 #define Arith_Kind_ASL 1
 #define Long int
