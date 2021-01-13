@@ -1,3 +1,25 @@
+//
+//---------------------------------------------------------------------------
+//
+// Copyright(C) 2020-2021 Eugene Grigorchuk
+// All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//--------------------------------------------------------------------------
+//
+
 #include "ml_renderbuffers.h"
 #include "metal/system/ml_framebuffer.h"
 #include "hwrenderer/utility/hw_cvars.h"
@@ -10,12 +32,12 @@ namespace MetalRenderer
 {
 
 
-MlRenderBuffers::MlRenderBuffers()
+MTLRenderBuffers::MTLRenderBuffers()
 {
     mDrawable = nil;
 }
 
-MlRenderBuffers::~MlRenderBuffers()
+MTLRenderBuffers::~MTLRenderBuffers()
 {
     [mSceneMultisampleTex release];
     [mSceneDepthStencilTex release];
@@ -32,12 +54,12 @@ MlRenderBuffers::~MlRenderBuffers()
     [mDitherTexture release];
 }
 
-void MlRenderBuffers::BeginFrame(int width, int height, int sceneWidth, int sceneHeight)
+void MTLRenderBuffers::BeginFrame(int width, int height, int sceneWidth, int sceneHeight)
 {
     
 }
 
-void MlRenderBuffers::CreatePipeline(int width, int height)
+void MTLRenderBuffers::CreatePipeline(int width, int height)
 {
     auto fb = GetMetalFrameBuffer();
 
@@ -54,7 +76,7 @@ void MlRenderBuffers::CreatePipeline(int width, int height)
     }
 }
 
-void MlRenderBuffers::BindDitherTexture(int texunit)
+void MTLRenderBuffers::BindDitherTexture(int texunit)
 {
     if (!mDitherTexture)
     {
@@ -69,13 +91,11 @@ void MlRenderBuffers::BindDitherTexture(int texunit)
              .1015625, .3515625, .2265625, .4765625, .1171875, .3671875, .2421875, .4921875,
              .8515625, .6015625, .9765625, .7265625, .8671875, .6171875, .9921875, .7421875,
         };
-        //mDitherTexture = Create2DTexture("DitherTexture", MTLPixelFormatRG32Float, 8, 8, data);
         
         MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
         desc.width = 8;
         desc.height = 8;
         desc.pixelFormat = MTLPixelFormatRG32Float;
-        //desc.storageMode = MTLStorageModePrivate;
         desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
         
         mDitherTexture = [device newTextureWithDescriptor:desc];
@@ -85,10 +105,11 @@ void MlRenderBuffers::BindDitherTexture(int texunit)
         MTLRegion region = MTLRegionMake2D(0, 0, 8, 8);
         [mDitherTexture replaceRegion:region mipmapLevel:0 withBytes:data bytesPerRow:(8*8)];
     }
+
     MLRenderer->mSamplerManager->SetRepeatAddressMode(true);
 }
 
-id<MTLTexture> MlRenderBuffers::Create2DTexture(const char *name, MTLPixelFormat format, int width, int height, const void* data /*= nullptr*/)
+OBJC_ID(MTLTexture) MTLRenderBuffers::Create2DTexture(const char *name, MTLPixelFormat format, int width, int height, const void* data /*= nullptr*/)
 {
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = width;
@@ -97,13 +118,13 @@ id<MTLTexture> MlRenderBuffers::Create2DTexture(const char *name, MTLPixelFormat
     desc.storageMode = MTLStorageModePrivate;
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
    
-    id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    OBJC_ID(MTLTexture) dummy = [device newTextureWithDescriptor:desc];
     
     [desc release];
     return dummy;
 }
 
-id<MTLTexture> MlRenderBuffers::Create2DMultisampleTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations)
+OBJC_ID(MTLTexture) MTLRenderBuffers::Create2DMultisampleTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations)
 {
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = width;
@@ -113,26 +134,23 @@ id<MTLTexture> MlRenderBuffers::Create2DMultisampleTexture(const char *name, MTL
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
     desc.textureType = MTLTextureType2DMultisample;
     desc.sampleCount = samples;
-    
-   // printf(name);
-   // printf(" is created(Create2DMultisampleTexture)\n");
-    id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    OBJC_ID(MTLTexture) dummy = [device newTextureWithDescriptor:desc];
     [desc release];
     return dummy;
 }
 
-id<MTLTexture> MlRenderBuffers::CreateFrameBuffer(const char *name, id<MTLTexture> colorbuffer)
+OBJC_ID(MTLTexture) MTLRenderBuffers::CreateFrameBuffer(const char *name, OBJC_ID(MTLTexture) colorbuffer)
 {
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.usage = MTLTextureUsageRenderTarget;
     desc.storageMode = MTLStorageModePrivate;
        
-    id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    OBJC_ID(MTLTexture) dummy = [device newTextureWithDescriptor:desc];
     [desc release];
     return dummy;
 }
 
-static id<MTLTexture> CreateRenderBuffer(const char *name, int width, int height, const void* data /* = nullptr */)
+static OBJC_ID(MTLTexture) CreateRenderBuffer(const char *name, int width, int height, const void* data /* = nullptr */)
 {
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = width;
@@ -142,12 +160,12 @@ static id<MTLTexture> CreateRenderBuffer(const char *name, int width, int height
     desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderRead | MTLTextureUsageShaderWrite;
     desc.pixelFormat = MTLPixelFormatRGBA16Float;
     
-    id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    OBJC_ID(MTLTexture) dummy = [device newTextureWithDescriptor:desc];
     [desc release];
     return dummy;
 }
 
-id<MTLTexture> MlRenderBuffers::CreateDepthTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations)
+OBJC_ID(MTLTexture) MTLRenderBuffers::CreateDepthTexture(const char *name, MTLPixelFormat format, int width, int height, int samples, bool fixedSampleLocations)
 {
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = width;
@@ -157,81 +175,21 @@ id<MTLTexture> MlRenderBuffers::CreateDepthTexture(const char *name, MTLPixelFor
     desc.usage = MTLTextureUsageRenderTarget;
     desc.textureType = MTLTextureType2D;
     
-    id<MTLTexture> dummy = [device newTextureWithDescriptor:desc];
+    OBJC_ID(MTLTexture) dummy = [device newTextureWithDescriptor:desc];
     [desc release];
     return dummy;
 }
 
-void MlRenderBuffers::ClearScene()
+void MTLRenderBuffers::ClearScene()
 {
-    //if (mSceneFB)
 
-    //    [mSceneFB release];
-    //if (mSceneDataFB)
-    //    [mSceneDataFB release];
-    //
-    //if (mSceneUsesTextures)
-    //{
-    //    [mSceneMultisampleTex release];
-    //    [mSceneFogTex release];
-    //    [mSceneNormalTex release];
-    //    [mSceneDepthStencilTex release];
-    //}
-    //else
-    //{
-    //    [mSceneMultisampleBuf release];
-    //    [mSceneFogBuf release];
-    //    [mSceneNormalBuf release];
-    //    [mSceneDepthStencilBuf release];
-    //}
 }
 
-void MlRenderBuffers::CreateScene(int width, int height, int samples, bool needsSceneTextures)
+void MTLRenderBuffers::CreateScene(int width, int height, int samples, bool needsSceneTextures)
 {
-    ClearScene();
-
-      //  if (samples > 1)
-      //  {
-      //      if (needsSceneTextures)
-      //      {
-      //          mSceneMultisampleTex = Create2DMultisampleTexture("SceneMultisample", MTLPixelFormatRGBA16Float, width, height, samples, false);
-      //          //need GL_RGBA8
-      //          mSceneDepthStencilTex = Create2DMultisampleTexture("SceneDepthStencil", MTLPixelFormatRGBA16Float, width, height, samples, false);
-      //          mSceneFogTex = Create2DMultisampleTexture("SceneFog", MTLPixelFormatRGBA16Float, width, height, samples, false);
-      //          mSceneNormalTex = Create2DMultisampleTexture("SceneNormal", MTLPixelFormatRGB10A2Unorm, width, height, samples, false);
-      //         // mSceneFB = CreateFrameBuffer("SceneFB", mSceneMultisampleTex, {}, {}, mSceneDepthStencilTex, true);
-      //         // mSceneDataFB = CreateFrameBuffer("SceneGBufferFB", mSceneMultisampleTex, mSceneFogTex, mSceneNormalTex, mSceneDepthStencilTex, true);
-      //      }
-      //      //else
-      //      //{
-      //      //    mSceneMultisampleBuf = CreateRenderBuffer("SceneMultisample", GL_RGBA16F, width, height, samples);
-      //      //    mSceneDepthStencilBuf = CreateRenderBuffer("SceneDepthStencil", GL_DEPTH24_STENCIL8, width, height, samples);
-      //      //    mSceneFB = CreateFrameBuffer("SceneFB", mSceneMultisampleBuf, mSceneDepthStencilBuf);
-      //      //    mSceneDataFB = CreateFrameBuffer("SceneGBufferFB", mSceneMultisampleBuf, mSceneDepthStencilBuf);
-      //      //}
-      //  }
-      //  else
-      //  {
-      //      //if (needsSceneTextures)
-      //      //{
-      //      //    mSceneDepthStencilTex = Create2DTexture("SceneDepthStencil", GL_DEPTH24_STENCIL8, width, height);
-      //      //    mSceneFogTex = Create2DTexture("SceneFog", GL_RGBA8, width, height);
-      //      //    mSceneNormalTex = Create2DTexture("SceneNormal", GL_RGB10_A2, width, height);
-      //      //    mSceneFB = CreateFrameBuffer("SceneFB", mPipelineTexture[0], {}, {}, mSceneDepthStencilTex, false);
-      //      //    mSceneDataFB = CreateFrameBuffer("SceneGBufferFB", mPipelineTexture[0], mSceneFogTex, mSceneNormalTex, mSceneDepthStencilTex, false);
-      //      //}
-      //      //else
-      //      //{
-      //      //    mSceneDepthStencilBuf = CreateRenderBuffer("SceneDepthStencil", GL_DEPTH24_STENCIL8, width, height);
-      //      //    mSceneFB = CreateFrameBuffer("SceneFB", mPipelineTexture[0], mSceneDepthStencilBuf);
-      //      //    mSceneDataFB = CreateFrameBuffer("SceneGBufferFB", mPipelineTexture[0], mSceneDepthStencilBuf);
-      //      //}
-      //  }
-    //}
-    
+    ClearScene(); 
     auto fb = GetMetalFrameBuffer();
     
-    //mSceneDepthStencilTex = CreateRenderBuffer("SceneDepthStencil", MTLPixelFormatDepth32Float_Stencil8, fb->GetClientWidth(), fb->GetClientHeight());
     mSceneDepthStencilTex = CreateDepthTexture("mSceneDepthTex", MTLPixelFormatDepth32Float_Stencil8, fb->GetClientWidth(), fb->GetClientHeight(), 0, 0);
     mSceneFogTex = Create2DTexture("SceneFog", MTLPixelFormatRGBA8Unorm, width, height);
     mSceneNormalTex = Create2DTexture("SceneNormal", MTLPixelFormatRGB10A2Unorm, width, height);
@@ -240,9 +198,8 @@ void MlRenderBuffers::CreateScene(int width, int height, int samples, bool needs
     mSceneDataFB = Create2DTexture("SceneGBufferFB", MTLPixelFormatRGBA8Unorm, width, height);
 }
 
-void MlRenderBuffers::CreateSceneColor(int width, int height)//, VkSampleCountFlagBits samples)
+void MTLRenderBuffers::CreateSceneColor(int width, int height)
 {
-    //auto fb = GetVulkanFrameBuffer();
 
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = width;
@@ -253,7 +210,7 @@ void MlRenderBuffers::CreateSceneColor(int width, int height)//, VkSampleCountFl
     [desc release];
 }
 
-void MlRenderBuffers::CreateSceneDepthStencil(int width, int height)//, VkSampleCountFlagBits samples)
+void MTLRenderBuffers::CreateSceneDepthStencil(int width, int height)//, VkSampleCountFlagBits samples)
 {
     MTLDepthStencilDescriptor *desc = [MTLDepthStencilDescriptor new];
     desc.depthCompareFunction = MTLCompareFunctionLess;
@@ -267,7 +224,7 @@ void MlRenderBuffers::CreateSceneDepthStencil(int width, int height)//, VkSample
     [desc release];
 }
 
-void MlRenderBuffers::Setup(int width, int height, int sceneWidth, int sceneHeight)
+void MTLRenderBuffers::Setup(int width, int height, int sceneWidth, int sceneHeight)
 {
     if (width <= 0 || height <= 0)
         I_FatalError("Requested invalid render buffer sizes: screen = %dx%d", width, height);
@@ -309,7 +266,7 @@ void MlRenderBuffers::Setup(int width, int height, int sceneWidth, int sceneHeig
     }
 }
 
-void MLPPRenderState::Draw()
+void MTLPPRenderState::Draw()
 {
     raise(SIGTRAP);
 }

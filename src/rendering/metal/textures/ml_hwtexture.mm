@@ -1,7 +1,7 @@
 //
 //---------------------------------------------------------------------------
 //
-// Copyright(C) 2004-2016 Christoph Oelckers
+// Copyright(C) 2020-2021 Eugene Grigorchuk
 // All rights reserved.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -19,12 +19,6 @@
 //
 //--------------------------------------------------------------------------
 //
-/*
-** gltexture.cpp
-** Low level OpenGL texture handling. These classes are also
-** containers for the various translations a texture can have.
-**
-*/
 
 #include "templates.h"
 #include "c_cvars.h"
@@ -65,15 +59,15 @@ int TexFormat[]={
     MTLPixelFormatBC3_RGBA,
 };
 
-MlHardwareTexture::MlHardwareTexture()
+MTLHardwareTexture::MTLHardwareTexture()
 {
     for (int i = 0; i < STATE_TEXTURES_COUNT; i++)
         metalState[i].Id = -1;
     
-    mBuffer = new MlBuffer();
+    mBuffer = new MTLBuffer();
 };
 
-MlHardwareTexture::~MlHardwareTexture()
+MTLHardwareTexture::~MTLHardwareTexture()
 {
     UnbindAll();
     delete mBuffer;
@@ -87,29 +81,29 @@ MlHardwareTexture::~MlHardwareTexture()
 //
 //
 //===========================================================================
-void MlHardwareTexture::AllocateBuffer(int w, int h, int texelsize)
+void MTLHardwareTexture::AllocateBuffer(int w, int h, int texelsize)
 {
     mlTextureBytes = texelsize;
     bufferpitch = w;
 }
 
 
-uint8_t* MlHardwareTexture::MapBuffer()
+uint8_t* MTLHardwareTexture::MapBuffer()
 {
     return (uint8_t*)mBuffer->GetData();
 }
 
-void MlHardwareTexture::ResetAll()
+void MTLHardwareTexture::ResetAll()
 {
     //[mTex release];
 }
 
-void MlHardwareTexture::Reset(size_t id)
+void MTLHardwareTexture::Reset(size_t id)
 {
     //[mTex release];
 }
 
-int MlHardwareTexture::Bind(int texunit, bool needmipmap)
+int MTLHardwareTexture::Bind(int texunit, bool needmipmap)
 {
     for (int i = 0; i < STATE_TEXTURES_COUNT; i++)
     {
@@ -121,7 +115,7 @@ int MlHardwareTexture::Bind(int texunit, bool needmipmap)
     return -1;
 }
 
-unsigned int MlHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name)
+unsigned int MTLHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name)
 {
     //nameTex(name);
     int rh,rw;
@@ -155,7 +149,7 @@ unsigned int MlHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w, 
     }
     
     
-    id<MTLTexture> tex;
+    OBJC_ID(MTLTexture) tex;
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = rw;
     desc.height = rh;
@@ -187,13 +181,13 @@ unsigned int MlHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w, 
     
 }
 
-unsigned int MlHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name)
+unsigned int MTLHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name)
 {
     CreateTexture(buffer,w,h,texunit,mipmap,name);
     return 1;
 }
 
-bool MlHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, const char *name)
+bool MTLHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, const char *name)
 {
     //nameTex(name);
     int rh,rw;
@@ -264,7 +258,7 @@ bool MlHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int 
     return currentTexId;
 }
 
-bool MlHardwareTexture::BindOrCreate(FTexture *tex, int texunit, int clampmode, int translation, int flags, id <MTLRenderCommandEncoder> encoder)
+bool MTLHardwareTexture::BindOrCreate(FTexture *tex, int texunit, int clampmode, int translation, int flags, OBJC_ID(MTLRenderCommandEncoder) encoder)
 {
     //if (texunit != -1)
     //{
@@ -325,7 +319,7 @@ bool MlHardwareTexture::BindOrCreate(FTexture *tex, int texunit, int clampmode, 
     return true;
 }
 
-void MlHardwareTexture::UnbindAll()
+void MTLHardwareTexture::UnbindAll()
 {
     for (int i = 0; i < STATE_TEXTURES_COUNT; i++)
     {
@@ -337,7 +331,7 @@ void MlHardwareTexture::UnbindAll()
     }
 }
 
-void MlHardwareTexture::Unbind(int texunit)
+void MTLHardwareTexture::Unbind(int texunit)
 {
     for (int i = 0; i < STATE_TEXTURES_COUNT; i++)
     {

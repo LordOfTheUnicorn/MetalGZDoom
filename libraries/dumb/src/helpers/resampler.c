@@ -924,7 +924,10 @@ static int resampler_run_blam(resampler * r, float ** out_, float * out_end)
             
             sample = in[0];
             if (phase_inc.quad < 0x100000000ll)
-                sample += (in[1] - in[0]) * phase;
+            {
+                int c = 3;
+            }
+                //sample += (in[1] - in[0]) * phase;
             sample -= last_amp;
             
             if (sample)
@@ -1127,9 +1130,10 @@ static int resampler_run_cubic(resampler * r, float ** out_, float * out_end)
             
             phase.quad += phase_inc.quad;
             
-            ADD_HI(in, phase)
+            ADD_HI(in, phase);
             
-            CLEAR_HI(phase);
+            //CLEAR_HI(phase);
+            phase.quad &= 0xffffffffu;
         }
         while ( in < in_end );
         

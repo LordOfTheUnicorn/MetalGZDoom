@@ -1,6 +1,26 @@
-#include "ml_framebuffer.h"
+//
+//---------------------------------------------------------------------------
+//
+// Copyright(C) 2020-2021 Eugene Grigorchuk
+// All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//--------------------------------------------------------------------------
+//
 
-//#include "v_video.h"
+#include "ml_framebuffer.h"
 #include "r_videoscale.h"
 
 #include "hwrenderer/data/flatvertices.h"
@@ -111,7 +131,7 @@ void MetalFrameBuffer::BeginFrame()
         
         MLRenderer->ml_RenderState->CreateRenderState(renderPassDescriptor);
         
-        [MLRenderer->ml_RenderState->commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer)
+        [MLRenderer->ml_RenderState->commandBuffer addCompletedHandler:^(OBJC_ID(MTLCommandBuffer) buffer)
         {
             dispatch_semaphore_signal(MLRenderer->semaphore);
         }];
@@ -120,7 +140,7 @@ void MetalFrameBuffer::BeginFrame()
 
 IHardwareTexture *MetalFrameBuffer::CreateHardwareTexture()
 {
-    return new MlHardwareTexture();
+    return new MTLHardwareTexture();
 }
 
 sector_t *MetalFrameBuffer::RenderView(player_t *player)
@@ -140,15 +160,15 @@ void MetalFrameBuffer::InitializeState()
     mViewpoints = new HWViewpointBuffer;
     mLights = new FLightBuffer();
 
-    MLRenderer = new MlRenderer(this);
+    MLRenderer = new MTLRenderer(this);
     MLRenderer->Initialize(GetWidth(), GetHeight(),this->GetDevice());
     
-    //static_cast<MlDataBuffer*>(mLights->GetBuffer())->BindBase();
+    //static_cast<MTLDataBuffer*>(mLights->GetBuffer())->BindBase();
 }
 
 IVertexBuffer *MetalFrameBuffer::CreateVertexBuffer()
 {
-    return new MlVertexBuffer();
+    return new MTLVertexBuffer();
 }
 
 void MetalFrameBuffer::TextureFilterChanged()
@@ -165,7 +185,7 @@ void MetalFrameBuffer::SetTextureFilterMode()
 
 IIndexBuffer *MetalFrameBuffer::CreateIndexBuffer()
 {
-    return new MlIndexBuffer();
+    return new MTLIndexBuffer();
 }
 
 void MetalFrameBuffer::SetVSync(bool vsync)
@@ -180,7 +200,7 @@ void MetalFrameBuffer::PostProcessScene(int fixedcm, const std::function<void()>
 
 IDataBuffer *MetalFrameBuffer::CreateDataBuffer(int bindingpoint, bool ssbo, bool needsresize)
 {
-    auto buffer = new MlDataBuffer();
+    auto buffer = new MTLDataBuffer();
 
     //auto fb = GetVulkanFrameBuffer();
     switch (bindingpoint)

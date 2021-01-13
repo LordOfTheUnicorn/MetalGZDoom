@@ -1,7 +1,7 @@
 //
 //---------------------------------------------------------------------------
 //
-// Copyright(C) 2009-2016 Christoph Oelckers
+// Copyright(C) 2020-2021 Eugene Grigorchuk
 // All rights reserved.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -55,11 +55,11 @@ enum
     VATTR_MAX
 };
 
-class MlRenderBuffers;
-class MlShader;
+class MTLRenderBuffers;
+class MTLShader;
 struct HWSectorPlane;
-static id<MTLDevice> device = MTLCreateSystemDefaultDevice();
-class MlRenderState : public FRenderState
+static OBJC_ID(MTLDevice) device = MTLCreateSystemDefaultDevice();
+class MTLRenderState : public FRenderState
 {
     uint8_t mLastDepthClamp : 1;
 
@@ -108,10 +108,10 @@ class MlRenderState : public FRenderState
     IVertexBuffer *mCurrentVertexBuffer;
     int mCurrentVertexOffsets[2];    // one per binding point
     IIndexBuffer *mCurrentIndexBuffer;
-    MlRenderBuffers *buffers;
+    MTLRenderBuffers *buffers;
     MTLViewport m_Viewport;
-    id <MTLFunction> VShader;
-    id <MTLFunction> FShader;
+    OBJC_ID(MTLFunction) VShader;
+    OBJC_ID(MTLFunction) FShader;
     MTLVertexDescriptor *vertexDesc[VATTR_MAX];
     RenderPipeline renderPipeline[PIPELINE_STATE];
     int currentState = 0;
@@ -137,7 +137,7 @@ class MlRenderState : public FRenderState
     void CreateRenderPipelineState();
     
     DepthIndex depthIndex[SIZE_DEPTH_DESC];
-    id<MTLDepthStencilState> depthState[SIZE_DEPTH_DESC];
+    OBJC_ID(MTLDepthStencilState) depthState[SIZE_DEPTH_DESC];
     MTLRenderPipelineDescriptor * renderPipelineDesc;
     MTLDepthStencilDescriptor *depthStateDesc;
     MTLCompareFunction depthCompareFunc;
@@ -145,17 +145,17 @@ class MlRenderState : public FRenderState
 
 
 public:
-    id<MTLRenderPipelineState> pipelineState[PIPELINE_STATE];
-    id <MTLLibrary> defaultLibrary;
-    MlShader *activeShader;
+    OBJC_ID(MTLRenderPipelineState) pipelineState[PIPELINE_STATE];
+    OBJC_ID(MTLLibrary) defaultLibrary;
+    MTLShader *activeShader;
     int val = 0;
-    id <MTLCommandQueue> commandQueue;
-    id <MTLCommandBuffer> commandBuffer;
-    id <MTLRenderCommandEncoder> renderCommandEncoder;
+    OBJC_ID(MTLCommandQueue) commandQueue;
+    OBJC_ID(MTLCommandBuffer) commandBuffer;
+    OBJC_ID(MTLRenderCommandEncoder) renderCommandEncoder;
     int currentIndexVB = 0;
-    id<MTLBuffer> mtl_vertexBuffer [3];
-    id<MTLBuffer> mtl_indexBuffer [3];
-    id<MTLBuffer> mtl_index [3];
+    OBJC_ID(MTLBuffer) mtl_vertexBuffer [3];
+    OBJC_ID(MTLBuffer) mtl_indexBuffer [3];
+    OBJC_ID(MTLBuffer) mtl_index [3];
     bool needDeleteVB = false;
     bool needDeleteIB = false;
     MTLBlendFactor srcblend = MTLBlendFactorSourceAlpha;
@@ -168,7 +168,7 @@ public:
     size_t indexOffset[2];
     bool needCpyBuffer : 1;
     void CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor);
-    void setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t offset = 0);
+    void setVertexBuffer(OBJC_ID(MTLBuffer) buffer, size_t index, size_t offset = 0);
     void CopyVertexBufferAttribute(const MLVertexBufferAttribute* attr);
     bool VertexBufferAttributeWasChange(const MLVertexBufferAttribute* attr);
     int  FindDepthIndex (MTLDepthStencilDescriptor* desc);
@@ -216,13 +216,13 @@ public:
         needCpyBuffer = false;
     }
     
-    MlRenderState() = default;
+    MTLRenderState() = default;
     
-    MlRenderState(MlRenderBuffers *buffers) : buffers(buffers)
+    MTLRenderState(MTLRenderBuffers *buffers) : buffers(buffers)
     {
     }
     
-    virtual ~MlRenderState()
+    virtual ~MTLRenderState()
     {
         Reset();
     }
@@ -271,7 +271,7 @@ public:
     void Draw(int dt, int index, int count, bool apply = true) override;
     void DrawIndexed(int dt, int index, int count, bool apply = true) override;
     void CreateFanToTrisIndexBuffer();
-    id<MTLBuffer> fanIndexBuffer;
+    OBJC_ID(MTLBuffer) fanIndexBuffer;
 
     bool SetDepthClamp(bool on) override;
     void SetDepthMask(bool on) override;
@@ -291,7 +291,7 @@ public:
 
 };
 
-//extern MlRenderState* ml_RenderState;
+//extern MTLRenderState* ml_RenderState;
 static MetalCocoaView* m_view;
 
 }

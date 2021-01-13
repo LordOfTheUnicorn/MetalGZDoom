@@ -1,7 +1,7 @@
-// 
+//
 //---------------------------------------------------------------------------
 //
-// Copyright(C) 2018 Christoph Oelckers
+// Copyright(C) 2020-2021 Eugene Grigorchuk
 // All rights reserved.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@
 //
 //--------------------------------------------------------------------------
 //
+
 #include "c_cvars.h"
 #include "hwrenderer/utility/hw_cvars.h"
 #include "hwrenderer/textures/hw_material.h"
@@ -40,7 +41,7 @@ MetalTexFilter Filters[] =
     {MTLSamplerMinMagFilterLinear,    MTLSamplerMinMagFilterNearest,    true },
 };
 
-MlSamplerManager::MlSamplerManager(id <MTLDevice> device)
+MTLSamplerManager::MTLSamplerManager(OBJC_ID(MTLDevice) device)
 {
     mDevice = device;
     CreateDesc();
@@ -50,7 +51,7 @@ MlSamplerManager::MlSamplerManager(id <MTLDevice> device)
     mRepeatMode = false;
 }
 
-void MlSamplerManager::CreateSamplers()
+void MTLSamplerManager::CreateSamplers()
 {
     for (int i = 0; i < 7; i++)
     {
@@ -58,7 +59,7 @@ void MlSamplerManager::CreateSamplers()
     }
 }
 
-void MlSamplerManager::CreateDesc()
+void MTLSamplerManager::CreateDesc()
 {
     for (int i = 0; i < 7; i++)
     {
@@ -80,7 +81,7 @@ void MlSamplerManager::CreateDesc()
     mDesc[4].tAddressMode = MTLSamplerAddressModeClampToEdge; //GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 }
 
-void MlSamplerManager::DestroyDesc()
+void MTLSamplerManager::DestroyDesc()
 {
     for (int i = 0; i < 7; i++)
     {
@@ -88,7 +89,7 @@ void MlSamplerManager::DestroyDesc()
     }
 }
 
-void MlSamplerManager::DestroySamplers()
+void MTLSamplerManager::DestroySamplers()
 {
     for (int i = 0; i < 7; i++)
     {
@@ -96,13 +97,13 @@ void MlSamplerManager::DestroySamplers()
     }
 }
 
-void MlSamplerManager::Destroy()
+void MTLSamplerManager::Destroy()
 {
     DestroyDesc();
     DestroySamplers();
 }
 
-void MlSamplerManager::SetTextureFilterMode()
+void MTLSamplerManager::SetTextureFilterMode()
 {
     //DestroySamplers();
            
@@ -148,12 +149,12 @@ void MlSamplerManager::SetTextureFilterMode()
     CreateSamplers();
 }
 
-void MlSamplerManager::BindToShader(id<MTLRenderCommandEncoder> encoder)
+void MTLSamplerManager::BindToShader(OBJC_ID(MTLRenderCommandEncoder) encoder)
 {
     [encoder setFragmentSamplerState:currentSampler atIndex:3];
 }
 
-uint8_t MlSamplerManager::Bind(int texunit, int num, int lastval)
+uint8_t MTLSamplerManager::Bind(int texunit, int num, int lastval)
 {
     //printf("Bind Sampler -> %d\n", num);
     currentSampler =  mSamplers[num];
@@ -161,7 +162,7 @@ uint8_t MlSamplerManager::Bind(int texunit, int num, int lastval)
     return 255;
 }
 
-void MlSamplerManager::SetRepeatAddressMode(bool val)
+void MTLSamplerManager::SetRepeatAddressMode(bool val)
 {
     mRepeatMode = val;
 }

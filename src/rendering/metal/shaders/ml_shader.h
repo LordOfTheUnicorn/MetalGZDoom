@@ -1,3 +1,25 @@
+//
+//---------------------------------------------------------------------------
+//
+// Copyright(C) 2020-2021 Eugene Grigorchuk
+// All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//--------------------------------------------------------------------------
+//
+
 #pragma once
 
 #include <memory>
@@ -9,10 +31,8 @@
 #include "metal/system/ml_buffer.h"
 
 #import <simd/simd.h>
-#import <Metal/Metal.h>
+#include "metal/system/MetalCore.h"
 
-//class VulkanDevice;
-//class VulkanShader;
 
 namespace MetalRenderer
 {
@@ -94,10 +114,10 @@ public:
     }
 };
 
-class MlShader
+class MTLShader
 {
-    friend class MlShaderCollection;
-    friend class MlRenderState;
+    friend class MTLShaderCollection;
+    friend class MTLRenderState;
 
     unsigned int hShader;
     unsigned int hVertProg;
@@ -143,14 +163,14 @@ class MlShader
 
 public:
     
-    MlShader(const char *name)
+    MTLShader(const char *name)
         : mName(name)
     {
         hShader = hVertProg = hFragProg = 0;
     }
     
-    MlShader() = default;
-    virtual ~MlShader(){};
+    MTLShader() = default;
+    virtual ~MTLShader(){};
 
     bool Load(const char * name, const char * vert_prog_lump, const char * fragprog, const char * fragprog2, const char * light_fragprog, const char *defines);
     bool Bind();
@@ -169,7 +189,7 @@ class ShaderFunctions
 {
 public:
     ShaderFunctions() = default;
-    ShaderFunctions(id<MTLFunction> frag, id<MTLFunction> vert)
+    ShaderFunctions(OBJC_ID(MTLFunction) frag, OBJC_ID(MTLFunction) vert)
     {
         vertFunc = vert;
         fragFunc = frag;
@@ -186,24 +206,24 @@ public:
     };
     
 private:
-    id<MTLFunction> vertFunc;
-    id<MTLFunction> fragFunc;
-    id<MTLLibrary>  lib;
+    OBJC_ID(MTLFunction) vertFunc;
+    OBJC_ID(MTLFunction) fragFunc;
+    OBJC_ID(MTLLibrary)  lib;
 };
 
-class MlShaderProgram
+class MTLShaderProgram
 {
 public:
     ShaderFunctions *funcs;
-    id<MTLBuffer> uniforms;
+    OBJC_ID(MTLBuffer) uniforms;
     
     
-    MlShaderProgram()
+    MTLShaderProgram()
     {
         funcs = new ShaderFunctions();
     };
     
-    ~MlShaderProgram()
+    ~MTLShaderProgram()
     {
         delete funcs;
     };
@@ -226,23 +246,23 @@ public:
     
 };
 
-class MlShaderCollection
+class MTLShaderCollection
 {
-    TArray<MlShader*> mMaterialShaders;
-    TArray<MlShader*> mMaterialShadersNAT;
-    MlShader *mEffectShaders[MAX_EFFECTS];
+    TArray<MTLShader*> mMaterialShaders;
+    TArray<MTLShader*> mMaterialShadersNAT;
+    MTLShader *mEffectShaders[MAX_EFFECTS];
 
     void Clean();
     void CompileShaders(EPassType passType);
     
 public:
-    MlShaderCollection(EPassType passType);
-    ~MlShaderCollection();
-    MlShader *Compile(const char *ShaderName, const char *ShaderPath, const char *LightModePath, const char *shaderdefines, bool usediscard, EPassType passType);
+    MTLShaderCollection(EPassType passType);
+    ~MTLShaderCollection();
+    MTLShader *Compile(const char *ShaderName, const char *ShaderPath, const char *LightModePath, const char *shaderdefines, bool usediscard, EPassType passType);
     int Find(const char *mame);
-    MlShader *BindEffect(int effect);
+    MTLShader *BindEffect(int effect);
 
-    MlShader *Get(unsigned int eff, bool alphateston)
+    MTLShader *Get(unsigned int eff, bool alphateston)
     {
         // indices 0-2 match the warping modes, 3 is brightmap, 4 no texture, the following are custom
         if (!alphateston && eff <= 3)
@@ -257,22 +277,22 @@ public:
     }
 };
 
-class MlShaderManager
+class MTLShaderManager
 {
 public:
-	MlShaderManager() = default;
-	~MlShaderManager() = default;
+	MTLShaderManager() = default;
+	~MTLShaderManager() = default;
 
-    MlShader *BindEffect(int effect, EPassType passType);
-    MlShader *Get(unsigned int eff, bool alphateston, EPassType passType);
+    MTLShader *BindEffect(int effect, EPassType passType);
+    MTLShader *Get(unsigned int eff, bool alphateston, EPassType passType);
 
 private:
     
-    void SetActiveShader(MlShader *sh);
-    MlShader *mActiveShader = nullptr;
-    TArray<MlShaderCollection*> mPassShaders;
+    void SetActiveShader(MTLShader *sh);
+    MTLShader *mActiveShader = nullptr;
+    TArray<MTLShaderCollection*> mPassShaders;
 
-    friend class MlShader;
+    friend class MTLShader;
 
 };
 

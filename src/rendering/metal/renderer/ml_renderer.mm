@@ -1,7 +1,7 @@
 //
 //---------------------------------------------------------------------------
 //
-// Copyright(C) 2005-2016 Christoph Oelckers
+// Copyright(C) 2020-2021 Eugene Grigorchuk
 // All rights reserved.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -19,11 +19,7 @@
 //
 //--------------------------------------------------------------------------
 //
-/*
-** gl1_renderer.cpp
-** Renderer interface
-**
-*/
+
 #include "v_video.h"
 #include "r_videoscale.h"
 
@@ -75,7 +71,7 @@ void DoWriteSavePic(FileWriter *file, ESSType ssformat, uint8_t *scr, int width,
 namespace MetalRenderer
 {
 
- MlRenderer *MLRenderer;
+ MTLRenderer *MLRenderer;
 
 //===========================================================================
 //
@@ -89,10 +85,10 @@ namespace MetalRenderer
 //
 //-----------------------------------------------------------------------------
 
-MlRenderer::MlRenderer(MetalFrameBuffer *fb)
+MTLRenderer::MTLRenderer(MetalFrameBuffer *fb)
 {
     framebuffer = fb;
-    ml_RenderState = new MlRenderState();
+    ml_RenderState = new MTLRenderState();
     if (ml_RenderState)
         ml_RenderState->InitialaziState();
     mHWViewpointUniforms = new mtlHWViewpointUniforms();
@@ -100,32 +96,25 @@ MlRenderer::MlRenderer(MetalFrameBuffer *fb)
     semaphore = dispatch_semaphore_create(3);
 }
 
-void MlRenderer::Initialize(int width, int height, id<MTLDevice> device)
+void MTLRenderer::Initialize(int width, int height, OBJC_ID(MTLDevice) device)
 {
-    mScreenBuffers = new MlRenderBuffers();
-    mSaveBuffers = new MlRenderBuffers();
+    mScreenBuffers = new MTLRenderBuffers();
+    mSaveBuffers = new MTLRenderBuffers();
     mBuffers = mScreenBuffers;
     mPresentShader = new PresentUniforms();
-    mPresent3dCheckerShader = new MlShaderProgram();
-    mPresent3dColumnShader = new MlShaderProgram();
-    mPresent3dRowShader = new MlShaderProgram();
+    mPresent3dCheckerShader = new MTLShaderProgram();
+    mPresent3dColumnShader = new MTLShaderProgram();
+    mPresent3dRowShader = new MTLShaderProgram();
     //mShadowMapShader = new FShadowMapShader();
-
-    // needed for the core profile, because someone decided it was a good idea to remove the default VAO.
-    //glGenQueries(1, &PortalQueryObject);
-
-    //glGenVertexArrays(1, &mVAOID);
-    //glBindVertexArray(mVAOID);
-    //FGLDebug::LabelObject(GL_VERTEX_ARRAY, mVAOID, "FGLRenderer.mVAOID");
 
     mFBID = 0;
     mOldFBID = 0;
 
-    mShaderManager = new MlShaderManager();
-    mSamplerManager = new MlSamplerManager(device);
+    mShaderManager = new MTLShaderManager();
+    mSamplerManager = new MTLSamplerManager(device);
 }
 
-MlRenderer::~MlRenderer()
+MTLRenderer::~MTLRenderer()
 {
     FlushModels();
     TexMan.FlushAll();
@@ -169,7 +158,7 @@ MlRenderer::~MlRenderer()
 //
 //===========================================================================
 
-void MlRenderer::ResetSWScene()
+void MTLRenderer::ResetSWScene()
 {
     // force recreation of the SW scene drawer to ensure it gets a new set of resources.
     if (swdrawer != nullptr)
@@ -184,7 +173,7 @@ void MlRenderer::ResetSWScene()
 //
 //===========================================================================
 
-bool MlRenderer::StartOffscreen()
+bool MTLRenderer::StartOffscreen()
 {
     //bool firstBind = (mFBID == 0);
     //if (mFBID == 0)
@@ -202,7 +191,7 @@ bool MlRenderer::StartOffscreen()
 //
 //===========================================================================
 
-void MlRenderer::EndOffscreen()
+void MTLRenderer::EndOffscreen()
 {
     //glBindFramebuffer(GL_FRAMEBUFFER, mOldFBID);
 }
@@ -213,7 +202,7 @@ void MlRenderer::EndOffscreen()
 //
 //===========================================================================
 
-void MlRenderer::UpdateShadowMap()
+void MTLRenderer::UpdateShadowMap()
 {
     //if (screen->mShadowMap.PerformUpdate())
     //{
@@ -251,7 +240,7 @@ void MlRenderer::UpdateShadowMap()
 //
 //-----------------------------------------------------------------------------
 
-sector_t *MlRenderer::RenderView(player_t* player)
+sector_t *MTLRenderer::RenderView(player_t* player)
 {
     ml_RenderState->SetVertexBuffer(screen->mVertexData);
     screen->mVertexData->Reset();
@@ -324,7 +313,7 @@ sector_t *MlRenderer::RenderView(player_t* player)
 //
 //===========================================================================
 
-void MlRenderer::BindToFrameBuffer(FMaterial *mat)
+void MTLRenderer::BindToFrameBuffer(FMaterial *mat)
 {
     auto BaseLayer = static_cast<IHardwareTexture*>(mat->GetLayer(0, 0));
 
@@ -344,7 +333,7 @@ void MlRenderer::BindToFrameBuffer(FMaterial *mat)
 //
 //===========================================================================
 
-void MlRenderer::RenderTextureView(FCanvasTexture *tex, AActor *Viewpoint, double FOV)
+void MTLRenderer::RenderTextureView(FCanvasTexture *tex, AActor *Viewpoint, double FOV)
 {
     // This doesn't need to clear the fake flat cache. It can be shared between camera textures and the main view of a scene.
     FMaterial * mltex = FMaterial::ValidateTexture(tex, false);
@@ -378,12 +367,12 @@ void MlRenderer::RenderTextureView(FCanvasTexture *tex, AActor *Viewpoint, doubl
 //
 //===========================================================================
 
-void MlRenderer::PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D)
+void MTLRenderer::PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D)
 {
     int sceneWidth = mBuffers->GetSceneWidth();
     int sceneHeight = mBuffers->GetSceneHeight();
 
-    MLPPRenderState renderstate(mBuffers);
+    MTLPPRenderState renderstate(mBuffers);
 
     hw_postprocess.Pass1(&renderstate, fixedcm, sceneWidth, sceneHeight);
     //mBuffers->BindCurrentFB();
@@ -405,7 +394,7 @@ typedef struct
     int    HdrMode;
 } secondUniforms;
 
-void MlRenderer::RenderScreenQuad()
+void MTLRenderer::RenderScreenQuad()
 {
     MTLRenderPassDescriptor*     passDesc = [MTLRenderPassDescriptor renderPassDescriptor];
     MTLRenderPipelineDescriptor* pipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
@@ -417,15 +406,18 @@ void MlRenderer::RenderScreenQuad()
     // Color render target
     passDesc.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mDrawable.texture;
     passDesc.colorAttachments[0].loadAction  = MTLLoadActionClear;
-    passDesc.colorAttachments[0].storeAction = MTLStoreActionDontCare;
+    passDesc.colorAttachments[0].storeAction = MTLStoreActionStore;
     
     //Depth render target
     passDesc.depthAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
     passDesc.stencilAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
     
     passDesc.depthAttachment.loadAction = MTLLoadActionClear;
+    passDesc.depthAttachment.storeAction = MTLStoreActionStore;
     passDesc.depthAttachment.clearDepth = 1.f;
+    
     passDesc.stencilAttachment.loadAction = MTLLoadActionClear;
+    passDesc.stencilAttachment.storeAction = MTLStoreActionStore;
     passDesc.stencilAttachment.clearStencil = 0.f;
     
     passDesc.renderTargetWidth  = GetMetalFrameBuffer()->GetClientWidth();//mOutputLetterbox.width;
@@ -473,11 +465,11 @@ void MlRenderer::RenderScreenQuad()
     vertexDesc.layouts[1].stepFunction = MTLVertexStepFunctionPerVertex;
     //##############################################################
     NSError* error = nil;
-    id <MTLLibrary> _defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib" error:&error];
+    OBJC_ID(MTLLibrary) _defaultLibrary = [device newLibraryWithFile: @"/Users/egrigorchuk/git/MetalGZDoom/metalShaders/doomMetallib.metallib" error:&error];
     if (error)
         assert(true);
-    id <MTLFunction> vs = [_defaultLibrary newFunctionWithName:@"vertexSecondRT"];
-    id <MTLFunction> fs = [_defaultLibrary newFunctionWithName:@"fragmentSecondRT"];
+    OBJC_ID(MTLFunction) vs = [_defaultLibrary newFunctionWithName:@"vertexSecondRT"];
+    OBJC_ID(MTLFunction) fs = [_defaultLibrary newFunctionWithName:@"fragmentSecondRT"];
     
     pipelineDesc.label = @"Second RT";
     pipelineDesc.vertexFunction = vs;
@@ -530,7 +522,7 @@ void MlRenderer::RenderScreenQuad()
     [MLRenderer->ml_RenderState->renderCommandEncoder setFragmentTexture:MLRenderer->mScreenBuffers->mDitherTexture atIndex:1];
     
     int indexes[6] {0,1,2, 1,3,2};
-    id<MTLBuffer> buff = [device newBufferWithBytes:indexes length:sizeof(int) * 6 options:MTLResourceStorageModeShared];
+    OBJC_ID(MTLBuffer) buff = [device newBufferWithBytes:indexes length:sizeof(int) * 6 options:MTLResourceStorageModeShared];
         
     [MLRenderer->ml_RenderState->renderCommandEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
                                                                  indexCount:6
@@ -538,15 +530,7 @@ void MlRenderer::RenderScreenQuad()
                                                                 indexBuffer:buff
                                                           indexBufferOffset:0];
     [buff release];
-    //[MLRenderer->ml_RenderState->renderCommandEncoder drawPrimitives:MTLPrimitiveTypeTriangleStrip
-    //                                                     vertexStart:0
-    //                                                     vertexCount:4];
-      MLRenderer->ml_RenderState->EndFrame();
-
-    //buffer->Bind(nullptr);
-    //glDrawArrays(GL_TRIANGLE_STRIP, FFlatVertexBvffer::PRESENT_INDEX, 4);
-   // [passDesc release];
-   // [vertexDesc release];
+    MLRenderer->ml_RenderState->EndFrame();
 }
 
 void MetalFrameBuffer::CleanForRestart()
@@ -555,7 +539,7 @@ void MetalFrameBuffer::CleanForRestart()
         MLRenderer->ResetSWScene();
 }
 
-void MlRenderer::WriteSavePic(player_t *player, FileWriter *file, int width, int height)
+void MTLRenderer::WriteSavePic(player_t *player, FileWriter *file, int width, int height)
 {
     IntRect bounds;
     bounds.left = 0;
@@ -603,7 +587,7 @@ void MlRenderer::WriteSavePic(player_t *player, FileWriter *file, int width, int
 //
 //===========================================================================
 
-void MlRenderer::BeginFrame()
+void MTLRenderer::BeginFrame()
 {
     mScreenBuffers->Setup(screen->mScreenViewport.width, screen->mScreenViewport.height, screen->mSceneViewport.width, screen->mSceneViewport.height);
     mSaveBuffers->Setup(SAVEPICWIDTH, SAVEPICHEIGHT, SAVEPICWIDTH, SAVEPICHEIGHT);

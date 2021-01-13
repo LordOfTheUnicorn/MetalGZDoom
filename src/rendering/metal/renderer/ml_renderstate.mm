@@ -1,7 +1,7 @@
 //
 //---------------------------------------------------------------------------
 //
-// Copyright(C) 2009-2016 Christoph Oelckers
+// Copyright(C) 2020-2021 Eugene Grigorchuk
 // All rights reserved.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -19,11 +19,6 @@
 //
 //--------------------------------------------------------------------------
 //
-/*
-** gl_renderstate.cpp
-** Render state maintenance
-**
-*/
 
 #include "templates.h"
 #include "doomstat.h"
@@ -70,7 +65,7 @@ static VSMatrix identityMatrix(1);
 //
 //==========================================================================
 
-void MlRenderState::Reset()
+void MTLRenderState::Reset()
 {
     FRenderState::Reset();
     mGlossiness = 0.0f;
@@ -130,7 +125,7 @@ void MlRenderState::Reset()
 //
 //==========================================================================
 
-void MlRenderState::ApplyState()
+void MTLRenderState::ApplyState()
 {
     if (mRenderStyle != stRenderStyle)
     {
@@ -249,11 +244,11 @@ matrix_float4x4 matrix_perspective_left_hand(float fovyRadians, float aspect, fl
                            vector_float4{0.0f, 0.0f, (-nearZ * farZ) / farNearDiff, 0.0f}};
 }
 
-void MlRenderState::InitialaziState()
+void MTLRenderState::InitialaziState()
 {
     Reset();
     NSError* error = nil;
-    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib"
+    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/egrigorchuk/git/MetalGZDoom/metalShaders/doomMetallib.metallib"
                                                                      error:&error];
     if (VShader == nil)        VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
     if (FShader  == nil)       FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
@@ -269,7 +264,7 @@ void MlRenderState::InitialaziState()
     CreateRenderPipelineState();
 }
 
-void MlRenderState::CreateRenderPipelineState()
+void MTLRenderState::CreateRenderPipelineState()
 {
     //##########################ATTRIBUTE 0#########################
     vertexDesc[0].attributes[0].format = MTLVertexFormatFloat3;
@@ -418,12 +413,12 @@ void MlRenderState::CreateRenderPipelineState()
     pipelineState[PIPELINE_STATE] = nil;
 }
 
-bool MlRenderState::ApplyShader()
+bool MTLRenderState::ApplyShader()
 {
     @autoreleasepool
     {
     static const float nulvec[] = { 0.f, 0.f, 0.f, 0.f };
-    MlVertexBuffer* vertexBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+    MTLVertexBuffer* vertexBuffer = static_cast<MTLVertexBuffer*>(mVertexBuffer);
     
     if (vertexBuffer == nullptr /*|| VertexBufferAttributeWasChange(vertexBuffer->mAttributeInfo)*/ || !updated)
     {
@@ -541,7 +536,7 @@ bool MlRenderState::ApplyShader()
         activeShader->normalmodelmatrix.matrixToMetal(identityMatrix);
     }
     
-    MlDataBuffer* dataBuffer = (MlDataBuffer*)screen->mViewpoints;
+    MTLDataBuffer* dataBuffer = (MTLDataBuffer*)screen->mViewpoints;
     
     PerView data;
     data.ModelMatrix       = (activeShader->modelmatrix.mat);
@@ -611,13 +606,13 @@ bool MlRenderState::ApplyShader()
     return true;
 }
 
-void MlRenderState::ApplyBuffers()
+void MTLRenderState::ApplyBuffers()
 {
     if (mVertexBuffer != mCurrentVertexBuffer || mVertexOffsets[0] != mCurrentVertexOffsets[0] || mVertexOffsets[1] != mCurrentVertexOffsets[1])
     {
         if (mVertexBuffer != nullptr)
         {
-            MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+            MTLVertexBuffer* mtlBuffer = static_cast<MTLVertexBuffer*>(mVertexBuffer);
             //float* val = (float*)mtl_vertexBuffer[currentIndexVB].contents;
             //memcpy(val, (float*)mtlBuffer->mBuffer, mtlBuffer->Size());
             
@@ -632,8 +627,8 @@ void MlRenderState::ApplyBuffers()
         {
             if (mIndexBuffer)
             {
-                MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
-                MlIndexBuffer* IndxBuffer = static_cast<MlIndexBuffer*>(mIndexBuffer);
+                MTLVertexBuffer* mtlBuffer = static_cast<MTLVertexBuffer*>(mVertexBuffer);
+                MTLIndexBuffer* IndxBuffer = static_cast<MTLIndexBuffer*>(mIndexBuffer);
                 int* arrIndexes = (int*)IndxBuffer->mBuffer;
                 float* buff = (float*)mtlBuffer->mBuffer;
                 float* mtlbuff = (float*)mtl_indexBuffer[currentIndexVB].contents;
@@ -661,7 +656,7 @@ void MlRenderState::ApplyBuffers()
     }
 }
 
-void MlRenderState::Apply()
+void MTLRenderState::Apply()
 {
     ApplyShader();
     ApplyState();
@@ -669,7 +664,7 @@ void MlRenderState::Apply()
     MLRenderer->mSamplerManager->BindToShader(renderCommandEncoder);
 }
 
-void MlRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor)
+void MTLRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescriptor)
 {
     commandBuffer = [commandQueue commandBuffer];
     renderCommandEncoder = [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
@@ -712,16 +707,16 @@ void MlRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescri
     
     if (activeShader == nullptr)
     {
-        activeShader = new MlShader();
+        activeShader = new MTLShader();
     }
 }
 
-void MlRenderState::CopyVertexBufferAttribute(const MLVertexBufferAttribute *attr)
+void MTLRenderState::CopyVertexBufferAttribute(const MLVertexBufferAttribute *attr)
 {
     memcpy(prevAttributeInfo, attr, sizeof(MLVertexBufferAttribute)*6);
 }
 
-int MlRenderState::FindDepthIndex(MTLDepthStencilDescriptor* desc)
+int MTLRenderState::FindDepthIndex(MTLDepthStencilDescriptor* desc)
 {
     MTLStencilOperation stencil = desc.backFaceStencil.depthStencilPassOperation;
     MTLCompareFunction     comp = desc.depthCompareFunction;
@@ -736,7 +731,7 @@ int MlRenderState::FindDepthIndex(MTLDepthStencilDescriptor* desc)
     return -1;
 }
 
-bool MlRenderState::VertexBufferAttributeWasChange(const MLVertexBufferAttribute *attr)
+bool MTLRenderState::VertexBufferAttributeWasChange(const MLVertexBufferAttribute *attr)
 {
     for (int i = 0; i < 6; i++)
     {
@@ -746,12 +741,12 @@ bool MlRenderState::VertexBufferAttributeWasChange(const MLVertexBufferAttribute
     return false;
 }
 
-void MlRenderState::setVertexBuffer(id<MTLBuffer> buffer, size_t index, size_t offset /*= 0*/)
+void MTLRenderState::setVertexBuffer(OBJC_ID(MTLBuffer) buffer, size_t index, size_t offset /*= 0*/)
 {
     [renderCommandEncoder setVertexBuffer:buffer offset:offset atIndex:index];
 }
 
-void MlRenderState::EndFrame()
+void MTLRenderState::EndFrame()
 {
     if (MLRenderer->mScreenBuffers->mDrawable)
         [commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
@@ -773,7 +768,7 @@ void MlRenderState::EndFrame()
 //
 //====================================================me=======================
 
-void MlRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translation, int overrideshader)
+void MTLRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translation, int overrideshader)
 {
     if (mat->tex->isHardwareCanvas())
     {
@@ -804,14 +799,14 @@ void MlRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translation
     // Textures that are already scaled in the texture lump will not get replaced by hires textures.
     int flags = mat->isExpanded() ? CTF_Expand : (gl_texture_usehires && !tex->isScaled() && clampmode <= CLAMP_XY) ? CTF_CheckHires : 0;
     int numLayers = mat->GetLayers();
-    auto base = static_cast<MlHardwareTexture*>(mat->GetLayer(0, translation));
+    auto base = static_cast<MTLHardwareTexture*>(mat->GetLayer(0, translation));
 
     if (base->BindOrCreate(tex, tex->GetID().GetIndex(), clampmode, translation, flags, renderCommandEncoder))
     {
         for (int i = 1; i<numLayers; i++)
         {
             FTexture *layer;
-            auto systex = static_cast<MlHardwareTexture*>(mat->GetLayer(i, 0, &layer));
+            auto systex = static_cast<MTLHardwareTexture*>(mat->GetLayer(i, 0, &layer));
             systex->BindOrCreate(layer, i, clampmode, 0, mat->isExpanded() ? CTF_Expand : 0, renderCommandEncoder);
             maxbound = i;
         }
@@ -819,7 +814,7 @@ void MlRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translation
     // unbind everything from the last texture that's still active
     for (int i = maxbound + 1; i <= maxBoundMaterial; i++)
     {
-    //    MlHardwareTexture::Unbind(i);
+    //    MTLHardwareTexture::Unbind(i);
         maxBoundMaterial = maxbound;
     }
 }
@@ -830,7 +825,7 @@ void MlRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translation
 //
 //==========================================================================
 
-void MlRenderState::ApplyBlendMode()
+void MTLRenderState::ApplyBlendMode()
 {
     static MTLBlendFactor    blendstyles[] =
       { MTLBlendFactorZero,                MTLBlendFactorSourceAlpha,         MTLBlendFactorSourceAlpha,
@@ -875,7 +870,7 @@ void MlRenderState::ApplyBlendMode()
 static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine, MTLPrimitiveTypeTriangle, MTLPrimitiveTypeTriangle, MTLPrimitiveTypeTriangleStrip };
 //static int dt2gl[] =            { GL_POINTS,             GL_LINES,             GL_TRIANGLES,             GL_TRIANGLE_FAN,          GL_TRIANGLE_STRIP };
 
-void MlRenderState::Draw(int dt, int index, int count, bool apply)
+void MTLRenderState::Draw(int dt, int index, int count, bool apply)
 {
     @autoreleasepool
     {
@@ -885,7 +880,7 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
         }
         
         drawcalls.Clock();
-        MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+        MTLVertexBuffer* mtlBuffer = static_cast<MTLVertexBuffer*>(mVertexBuffer);
         float* buffer = &(((float*)(mtlBuffer->mBuffer))[(mtlBuffer->mStride * index) / 4]);
         
         //printf("Draw = %lu\n", mtlBuffer->mStride * count);
@@ -919,7 +914,7 @@ void MlRenderState::Draw(int dt, int index, int count, bool apply)
     }
 }
 
-void MlRenderState::CreateFanToTrisIndexBuffer()
+void MTLRenderState::CreateFanToTrisIndexBuffer()
 {
    TArray<uint32_t> data;
     for (int i = 2; i < 1000; i++)
@@ -931,7 +926,7 @@ void MlRenderState::CreateFanToTrisIndexBuffer()
     fanIndexBuffer = [device newBufferWithBytes:data.Data() length:sizeof(uint32_t) * data.Size() options:MTLResourceStorageModeShared];
 }
 
-void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
+void MTLRenderState::DrawIndexed(int dt, int index, int count, bool apply)
 {
     @autoreleasepool
     {
@@ -940,12 +935,12 @@ void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
             Apply();
         }
         drawcalls.Clock();
-        //MlIndexBuffer*  IndexBuffer    = static_cast<MlIndexBuffer*>(mIndexBuffer);
-        //id<MTLBuffer>   indexBuffer    = [device newBufferWithBytes:(float*)IndexBuffer->mBuffer  length:IndexBuffer->Size()  options:MTLResourceStorageModeShared];
+        //MTLIndexBuffer*  IndexBuffer    = static_cast<MTLIndexBuffer*>(mIndexBuffer);
+        //OBJC_ID(MTLBuffer)   indexBuffer    = [device newBufferWithBytes:(float*)IndexBuffer->mBuffer  length:IndexBuffer->Size()  options:MTLResourceStorageModeShared];
         
         //int *val = (int*)IndexBuffer->mBuffer;
         
-        MlVertexBuffer* mtlBuffer = static_cast<MlVertexBuffer*>(mVertexBuffer);
+        MTLVertexBuffer* mtlBuffer = static_cast<MTLVertexBuffer*>(mVertexBuffer);
         
         
         [renderCommandEncoder setVertexBuffer:mtl_indexBuffer[currentIndexVB]
@@ -964,7 +959,7 @@ void MlRenderState::DrawIndexed(int dt, int index, int count, bool apply)
     }
 }
 
-void MlRenderState::SetDepthMask(bool on)
+void MTLRenderState::SetDepthMask(bool on)
 {
     EnableDepthTest(on);
     if(!on)
@@ -980,7 +975,7 @@ void MlRenderState::SetDepthMask(bool on)
     }
 }
 
-void MlRenderState::SetDepthFunc(int func)
+void MTLRenderState::SetDepthFunc(int func)
 {
     static MTLCompareFunction df2ml[] = { MTLCompareFunctionLess, MTLCompareFunctionLessEqual, MTLCompareFunctionAlways };
     //                                  {         GL_LESS,                GL_LEQUAL,                   GL_ALWAYS };
@@ -989,12 +984,12 @@ void MlRenderState::SetDepthFunc(int func)
     needCreateDepthState = true;
 }
 
-void MlRenderState::SetDepthRange(float min, float max)
+void MTLRenderState::SetDepthRange(float min, float max)
 {
     //glDepthRange(min, max);
 }
 
-void MlRenderState::SetColorMask(bool r, bool g, bool b, bool a)
+void MTLRenderState::SetColorMask(bool r, bool g, bool b, bool a)
 {
     colorMask = 0;
     if (r)
@@ -1009,7 +1004,7 @@ void MlRenderState::SetColorMask(bool r, bool g, bool b, bool a)
     updated = false;
 }
 
-void MlRenderState::SetStencil(int offs, int op, int flags = -1)
+void MTLRenderState::SetStencil(int offs, int op, int flags = -1)
 {
     static MTLStencilOperation op2ml[] = { MTLStencilOperationKeep, MTLStencilOperationIncrementClamp, MTLStencilOperationDecrementClamp };
     //                                          { GL_KEEP,                        GL_INCR,                          GL_DECR };
@@ -1042,7 +1037,7 @@ void MlRenderState::SetStencil(int offs, int op, int flags = -1)
     }
 }
 
-void MlRenderState::ToggleState(int state, bool on)
+void MTLRenderState::ToggleState(int state, bool on)
 {
     if (on)
     {
@@ -1054,7 +1049,7 @@ void MlRenderState::ToggleState(int state, bool on)
     //}
 }
 
-void MlRenderState::SetCulling(int mode)
+void MTLRenderState::SetCulling(int mode)
 {
     //if (mode != Cull_None)
     //{
@@ -1067,7 +1062,7 @@ void MlRenderState::SetCulling(int mode)
     //}
 }
 
-void MlRenderState::EnableClipDistance(int num, bool state)
+void MTLRenderState::EnableClipDistance(int num, bool state)
 {
     // Update the viewpoint-related clip plane setting.
     //if (!(gl.flags & RFL_NO_CLIP_PLANES))
@@ -1076,7 +1071,7 @@ void MlRenderState::EnableClipDistance(int num, bool state)
     //}
 }
 
-void MlRenderState::Clear(int targets)
+void MTLRenderState::Clear(int targets)
 {
     // This always clears to default values.
     int gltarget = 0;
@@ -1102,23 +1097,30 @@ void MlRenderState::Clear(int targets)
     //glClear(gltarget);
 }
 
-void MlRenderState::EnableStencil(bool on)
+void MTLRenderState::EnableStencil(bool on)
 {
     if (!on)
         depthStateDesc.frontFaceStencil.stencilCompareFunction = MTLCompareFunctionNever;
 }
 
-void MlRenderState::SetScissor(int x, int y, int w, int h)
+void MTLRenderState::SetScissor(int x, int y, int w, int h)
 {
     mScissorX = x;
     mScissorY = y;
     mScissorWidth = w;
     mScissorHeight = h;
-    //mScissorChanged = true;
-    //mNeedApply = true;
+    
+    if (w > -1)
+    {
+        //glScissor(x, y, w, h);
+        [renderCommandEncoder setScissorRect:{static_cast<NSUInteger>(x),
+                                              static_cast<NSUInteger>(y),
+                                              static_cast<NSUInteger>(w),
+                                              static_cast<NSUInteger>(h - y)}];
+    }
 }
 
-void MlRenderState::SetViewport(int x, int y, int w, int h)
+void MTLRenderState::SetViewport(int x, int y, int w, int h)
 {
     //m_Viewport.originX = x;
     //m_Viewport.originY = y;
@@ -1130,18 +1132,18 @@ void MlRenderState::SetViewport(int x, int y, int w, int h)
     //[renderCommandEncoder setViewport:m_Viewport];
 }
 
-void MlRenderState::EnableDepthTest(bool on)
+void MTLRenderState::EnableDepthTest(bool on)
 {
     updated = false;
     depthStateDesc.depthWriteEnabled = on;
 }
 
-void MlRenderState::EnableMultisampling(bool on)
+void MTLRenderState::EnableMultisampling(bool on)
 {
     //ToggleState(GL_MULTISAMPLE, on);
 }
 
-void MlRenderState::EnableLineSmooth(bool on)
+void MTLRenderState::EnableLineSmooth(bool on)
 {
     //ToggleState(GL_LINE_SMOOTH, on);
 }
@@ -1151,7 +1153,7 @@ void MlRenderState::EnableLineSmooth(bool on)
 //
 //
 //==========================================================================
-void MlRenderState::ClearScreen()
+void MTLRenderState::ClearScreen()
 {
     bool multi = !!glIsEnabled(GL_MULTISAMPLE);
 
@@ -1177,7 +1179,7 @@ void MlRenderState::ClearScreen()
 //
 //==========================================================================
 
-bool MlRenderState::SetDepthClamp(bool on)
+bool MTLRenderState::SetDepthClamp(bool on)
 {
     bool res = mLastDepthClamp;
     //if (!on) glDisable(GL_DEPTH_CLAMP);

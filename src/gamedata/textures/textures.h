@@ -228,8 +228,8 @@ namespace OpenGLRenderer
 }
 namespace MetalRenderer
 {
-    class MlRenderState;
-    class MlHardwareTexture;
+    class MTLRenderState;
+    class MTLHardwareTexture;
 }
 
 union FContentIdBuilder
@@ -307,8 +307,8 @@ class FTexture
 	friend class FBrightmapTexture;
 	friend class FFont;
 	friend class FSpecialFont;
-    friend class MetalRenderer::MlRenderState;
-    friend class MetalRenderer::MlHardwareTexture;
+    friend class MetalRenderer::MTLRenderState;
+    friend class MetalRenderer::MTLHardwareTexture;
 
 
 public:

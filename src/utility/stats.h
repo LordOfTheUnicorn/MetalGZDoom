@@ -136,7 +136,7 @@ inline uint64_t rdtsc()
 	if (CPU.bRDTSC)
 	{
 		uint64_t tsc;
-		asm volatile ("\trdtsc\n" : "=A" (tsc));
+		//asm volatile ("\trdtsc\n" : "=A" (tsc));
 		return tsc;
 	}
 	return 0;

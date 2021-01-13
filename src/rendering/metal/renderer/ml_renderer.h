@@ -1,7 +1,26 @@
+//
+//---------------------------------------------------------------------------
+//
+// Copyright(C) 2020-2021 Eugene Grigorchuk
+// All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//--------------------------------------------------------------------------
+//
 
-#ifndef __GL_RENDERER_H
-#define __GL_RENDERER_H
-
+#pragma once
 #include "r_defs.h"
 #include "v_video.h"
 #include "vectors.h"
@@ -14,8 +33,6 @@
 #include "hwrenderer/dynlights/hw_shadowmap.h"
 #include "hwrenderer/postprocessing/hw_postprocess.h"
 #include <functional>
-
-#import "Metal/Metal.h"
 
 #ifdef _MSC_VER
 #pragma warning(disable:4244)
@@ -39,7 +56,7 @@ struct FRenderViewpoint;
 namespace MetalRenderer
 {
 class MetalFrameBuffer;
-class MlRenderState;
+class MTLRenderState;
 
 struct mtlHWViewpointUniforms
 {
@@ -74,45 +91,44 @@ struct mtlHWViewpointUniforms
     int     mShadowmapFilter;
 };
 
-class MlRenderer
+class MTLRenderer
 {
 public:
 
     MetalFrameBuffer *framebuffer;
     int mMirrorCount = 0;
     int mPlaneMirrorCount = 0;
-    MlShaderManager *mShaderManager = nullptr;
-    MlSamplerManager *mSamplerManager = nullptr;
+    MTLShaderManager *mShaderManager = nullptr;
+    MTLSamplerManager *mSamplerManager = nullptr;
     unsigned int mFBID;
     unsigned int mVAOID;
     unsigned int PortalQueryObject;
     unsigned int mStencilValue = 0;
     dispatch_semaphore_t semaphore;
     
-    MlRenderState *ml_RenderState;
+    MTLRenderState *ml_RenderState;
     
     mtlHWViewpointUniforms *mHWViewpointUniforms;
 
     int mOldFBID;
 
-    MlRenderBuffers *mBuffers = nullptr;
-    MlRenderBuffers *mScreenBuffers = nullptr;
-    MlRenderBuffers *mSaveBuffers = nullptr;
+    MTLRenderBuffers *mBuffers = nullptr;
+    MTLRenderBuffers *mScreenBuffers = nullptr;
+    MTLRenderBuffers *mSaveBuffers = nullptr;
     PresentUniforms *mPresentShader = nullptr;;
-    MlShaderProgram *mPresent3dCheckerShader = nullptr;
-    MlShaderProgram *mPresent3dColumnShader = nullptr;
-    MlShaderProgram *mPresent3dRowShader = nullptr;
-    //FShadowMapShader *mShadowMapShader = nullptr;
+    MTLShaderProgram *mPresent3dCheckerShader = nullptr;
+    MTLShaderProgram *mPresent3dColumnShader = nullptr;
+    MTLShaderProgram *mPresent3dRowShader = nullptr;
     bool loadDepthStencil : 1;
 
     //FRotator mAngles;
 
     SWSceneDrawer *swdrawer = nullptr;
 
-    MlRenderer(MetalFrameBuffer *fb);
-    ~MlRenderer();
+    MTLRenderer(MetalFrameBuffer *fb);
+    ~MTLRenderer();
 
-    void Initialize(int width, int height, id<MTLDevice> device);
+    void Initialize(int width, int height, OBJC_ID(MTLDevice) device);
 
     void ClearBorders();
 
@@ -149,7 +165,6 @@ private:
     void PresentAnaglyph(bool r, bool g, bool b);
     void PresentSideBySide();
     void PresentTopBottom();
-   // void prepareInterleavedPresent(FPresentShaderBase& shader);
     void PresentColumnInterleaved();
     void PresentRowInterleaved();
     void PresentCheckerInterleaved();
@@ -164,6 +179,6 @@ struct TexFilter_s
     bool mipmapping;
 } ;
 
-extern MlRenderer *MLRenderer;
+extern MTLRenderer *MLRenderer;
 }
-#endif
+

@@ -1,7 +1,7 @@
 //
 //---------------------------------------------------------------------------
 //
-// Copyright(C) 2004-2016 Christoph Oelckers
+// Copyright(C) 2020-2021 Eugene Grigorchuk
 // All rights reserved.
 //
 // This program is free software: you can redistribute it and/or modify
@@ -19,11 +19,6 @@
 //
 //--------------------------------------------------------------------------
 //
-/*
-** gl_scene.cpp
-** manages the rendering of the player's view
-**
-*/
 
 #include "gl_load/gl_system.h"
 #include "gi.h"
@@ -61,7 +56,7 @@ CVAR(Bool, ml_no_skyclear, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 
 namespace MetalRenderer
 {
-    MlRenderer *mlRenderer;
+    MTLRenderer *mlRenderer;
 //-----------------------------------------------------------------------------
 //
 // gl_drawscene - this function renders the scene from the current
@@ -71,7 +66,7 @@ namespace MetalRenderer
 //
 //-----------------------------------------------------------------------------
 
-void MlRenderer::DrawScene(HWDrawInfo *di, int drawmode)
+void MTLRenderer::DrawScene(HWDrawInfo *di, int drawmode)
 {
     static int recursion=0;
     static int ssao_portals_available = 0;
@@ -139,7 +134,7 @@ void MlRenderer::DrawScene(HWDrawInfo *di, int drawmode)
 //
 //-----------------------------------------------------------------------------
 
-sector_t * MlRenderer::RenderViewpoint (FRenderViewpoint &mainvp, AActor * camera, IntRect * bounds, float fov, float ratio, float fovratio, bool mainview, bool toscreen)
+sector_t * MTLRenderer::RenderViewpoint (FRenderViewpoint &mainvp, AActor * camera, IntRect * bounds, float fov, float ratio, float fovratio, bool mainview, bool toscreen)
 {
     R_SetupFrame (mainvp, r_viewwindow, camera);
 

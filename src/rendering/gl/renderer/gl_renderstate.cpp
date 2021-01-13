@@ -93,6 +93,9 @@ void FGLRenderState::Reset()
 bool FGLRenderState::ApplyShader()
 {
 	static const float nulvec[] = { 0.f, 0.f, 0.f, 0.f };
+    if (mSpecialEffect != -1)
+        printf("%d\n",mSpecialEffect);
+    
 	if (mSpecialEffect > EFF_NONE)
 	{
 		activeShader = GLRenderer->mShaderManager->BindEffect(mSpecialEffect, mPassType);
@@ -509,8 +512,8 @@ void FGLRenderState::SetScissor(int x, int y, int w, int h)
 {
 	if (w > -1)
 	{
-		glEnable(GL_SCISSOR_TEST);
-		glScissor(x, y, w, h);
+		//glEnable(GL_SCISSOR_TEST);
+		//glScissor(x, y, w, h);
 	}
 	else
 	{

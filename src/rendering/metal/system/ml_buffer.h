@@ -1,3 +1,25 @@
+//
+//---------------------------------------------------------------------------
+//
+// Copyright(C) 2020-2021 Eugene Grigorchuk
+// All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//--------------------------------------------------------------------------
+//
+
 #pragma once
 
 #import <Metal/Metal.h>
@@ -21,11 +43,11 @@ static struct MLVertexBufferAttribute
     int offset;
 };
 
-class MlBuffer : virtual public IBuffer
+class MTLBuffer : virtual public IBuffer
 {
 public:
-    MlBuffer();
-    ~MlBuffer();
+    MTLBuffer();
+    ~MTLBuffer();
 
     //static void ResetAll();
     void Reset();
@@ -53,14 +75,14 @@ private:
     //uint                indexSize;
 };
 
-class MlVertexBuffer : public IVertexBuffer, public MlBuffer
+class MTLVertexBuffer : public IVertexBuffer, public MTLBuffer
 {
     int mNumBindingPoints;
 public:
     MLVertexBufferAttribute mAttributeInfo[VATTR_MAX] = {};
     size_t mStride = 0;
-    MlVertexBuffer();
-    ~MlVertexBuffer();
+    MTLVertexBuffer();
+    ~MTLVertexBuffer();
     void SetFormat(int numBindingPoints, int numAttributes, size_t stride, const FVertexBufferAttribute *attrs) override;
     void Bind(int *offsets);
 
@@ -68,18 +90,18 @@ public:
     int sizeBuffer;
 };
 
-class MlIndexBuffer : public IIndexBuffer, public MlBuffer
+class MTLIndexBuffer : public IIndexBuffer, public MTLBuffer
 {
 public:
-    MlIndexBuffer() {option = MTLResourceStorageModeShared;}
+    MTLIndexBuffer() {option = MTLResourceStorageModeShared;}
 
     int bindingpoint;
 };
 
-class MlDataBuffer : public IDataBuffer, public MlBuffer
+class MTLDataBuffer : public IDataBuffer, public MTLBuffer
 {
 public:
-    MlDataBuffer(){};
+    MTLDataBuffer(){};
 
     void BindRange(FRenderState *state, size_t start, size_t length) override;
 

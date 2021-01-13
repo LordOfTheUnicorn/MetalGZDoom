@@ -1,16 +1,39 @@
+//
+//---------------------------------------------------------------------------
+//
+// Copyright(C) 2020-2021 Eugene Grigorchuk
+// All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//--------------------------------------------------------------------------
+//
+
 #pragma once
 
-#import <Metal/Metal.h>
+#include "metal/system/MetalCore.h"
 
 #include "gl_sysfb.h"
 #include "metal/system/ml_buffer.h"
 #include "metal/renderer/ml_streambuffer.h"
 #include "metal/renderer/ml_renderer.h"
 
+
 namespace MetalRenderer
 {
 
-class MlRenderer;
+class MTLRenderer;
 
 class MetalFrameBuffer : public SystemBaseFrameBuffer
 {
@@ -22,17 +45,17 @@ public:
     bool needCreateRenderState : 1;
     MTLRenderPassDescriptor* renderPassDescriptor = nullptr;
     const NSUInteger maxBuffers = 3;
-    id <MTLRenderPipelineState> piplineState;
-    //id<MTLRenderCommandEncoder> renderCommandEncoder;
+    OBJC_ID(MTLRenderPipelineState) piplineState;
+    //OBJC_ID(MTLRenderCommandEncoder) renderCommandEncoder;
     
-    MlDataBuffer *ViewpointUBO = nullptr;
-    MlDataBuffer *LightBufferSSO = nullptr;
-    MlStreamBuffer *MatrixBuffer = nullptr;
-    MlStreamBuffer *StreamBuffer = nullptr;
+    MTLDataBuffer *ViewpointUBO = nullptr;
+    MTLDataBuffer *LightBufferSSO = nullptr;
+    MTLStreamBuffer *MatrixBuffer = nullptr;
+    MTLStreamBuffer *StreamBuffer = nullptr;
     
-    MlDataBuffer *LightNodes = nullptr;
-    MlDataBuffer *LightLines = nullptr;
-    MlDataBuffer *LightList = nullptr;
+    MTLDataBuffer *LightNodes = nullptr;
+    MTLDataBuffer *LightLines = nullptr;
+    MTLDataBuffer *LightList = nullptr;
     
     int camtexcount = 0;
     
@@ -45,7 +68,7 @@ public:
     void Swap();
     IVertexBuffer *CreateVertexBuffer() override;
     IIndexBuffer *CreateIndexBuffer() override;
-    id <MTLDevice> GetDevice()
+    OBJC_ID(MTLDevice) GetDevice()
     {
         return device;
     };

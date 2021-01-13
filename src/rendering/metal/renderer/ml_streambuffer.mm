@@ -1,3 +1,24 @@
+//
+//---------------------------------------------------------------------------
+//
+// Copyright(C) 2020-2021 Eugene Grigorchuk
+// All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//--------------------------------------------------------------------------
+//
 
 #include "ml_renderstate.h"
 #include "metal/system/ml_framebuffer.h"
@@ -7,20 +28,20 @@
 namespace MetalRenderer
 {
 
-MlStreamBuffer::MlStreamBuffer(size_t structSize, size_t count)
+MTLStreamBuffer::MTLStreamBuffer(size_t structSize, size_t count)
 {
 	mBlockSize = static_cast<uint32_t>((structSize + screen->uniformblockalignment - 1) / screen->uniformblockalignment * screen->uniformblockalignment);
 
-	UniformBuffer = (MlDataBuffer*)GetMetalFrameBuffer()->CreateDataBuffer(-1, false, false);
+	UniformBuffer = (MTLDataBuffer*)GetMetalFrameBuffer()->CreateDataBuffer(-1, false, false);
 	UniformBuffer->SetData(mBlockSize * count, nullptr, false);
 }
 
-MlStreamBuffer::~MlStreamBuffer()
+MTLStreamBuffer::~MTLStreamBuffer()
 {
 	delete UniformBuffer;
 }
 
-uint32_t MlStreamBuffer::NextStreamDataBlock()
+uint32_t MTLStreamBuffer::NextStreamDataBlock()
 {
 	mStreamDataOffset += mBlockSize;
 	if (mStreamDataOffset + (size_t)mBlockSize >= UniformBuffer->Size())
@@ -33,12 +54,12 @@ uint32_t MlStreamBuffer::NextStreamDataBlock()
 
 /////////////////////////////////////////////////////////////////////////////
 
-MlStreamBufferWriter::MlStreamBufferWriter()
+MTLStreamBufferWriter::MTLStreamBufferWriter()
 {
 	mBuffer = GetMetalFrameBuffer()->StreamBuffer;
 }
 
-bool MlStreamBufferWriter::Write(const StreamData& data)
+bool MTLStreamBufferWriter::Write(const StreamData& data)
 {
 	mDataIndex++;
 	if (mDataIndex == 255)
@@ -53,7 +74,7 @@ bool MlStreamBufferWriter::Write(const StreamData& data)
 	return true;
 }
 
-void MlStreamBufferWriter::Reset()
+void MTLStreamBufferWriter::Reset()
 {
 	//mDataIndex = MAX_STREAM_DATA - 1;
 	//mStreamDataOffset = 0;
@@ -62,7 +83,7 @@ void MlStreamBufferWriter::Reset()
 
 /////////////////////////////////////////////////////////////////////////////
 
-MlMatrixBufferWriter::MlMatrixBufferWriter()
+MTLMatrixBufferWriter::MTLMatrixBufferWriter()
 {
 	mBuffer = GetMetalFrameBuffer()->MatrixBuffer;
 	mIdentityMatrix.loadIdentity();
@@ -85,7 +106,7 @@ static void BufferedSet(bool& modified, VSMatrix& dst, const VSMatrix& src)
 	modified = true;
 }
 
-bool MlMatrixBufferWriter::Write(const VSMatrix& modelMatrix, bool modelMatrixEnabled, const VSMatrix& textureMatrix, bool textureMatrixEnabled)
+bool MTLMatrixBufferWriter::Write(const VSMatrix& modelMatrix, bool modelMatrixEnabled, const VSMatrix& textureMatrix, bool textureMatrixEnabled)
 {
 	bool modified = (mOffset == 0); // always modified first call
 
@@ -123,7 +144,7 @@ bool MlMatrixBufferWriter::Write(const VSMatrix& modelMatrix, bool modelMatrixEn
 	return true;
 }
 
-void MlMatrixBufferWriter::Reset()
+void MTLMatrixBufferWriter::Reset()
 {
 	mOffset = 0;
 	mBuffer->Reset();

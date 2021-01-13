@@ -1,3 +1,25 @@
+//
+//---------------------------------------------------------------------------
+//
+// Copyright(C) 2020-2021 Eugene Grigorchuk
+// All rights reserved.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Lesser General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Lesser General Public License for more details.
+//
+// You should have received a copy of the GNU Lesser General Public License
+// along with this program.  If not, see http://www.gnu.org/licenses/
+//
+//--------------------------------------------------------------------------
+//
+
 #include "v_video.h"
 #include "ml_buffer.h"
 #include "ml_framebuffer.h"
@@ -14,17 +36,17 @@ static inline void InvalidateBufferState()
         MLRenderer->ml_RenderState->ResetVertexBuffer();    // force rebinding of buffers on next Apply call.
 }
 
-MlBuffer::MlBuffer()
+MTLBuffer::MTLBuffer()
 {
     mBuffer = nullptr;
 }
 
-MlBuffer::~MlBuffer()
+MTLBuffer::~MTLBuffer()
 {
     Reset();
 }
 
-void MlBuffer::Reset()
+void MTLBuffer::Reset()
 {
    if (mBuffer)
     free(mBuffer);
@@ -32,7 +54,7 @@ void MlBuffer::Reset()
     mBuffer = nullptr;
 }
 
-void MlBuffer::SetData(size_t size, const void *data, bool staticdata)
+void MTLBuffer::SetData(size_t size, const void *data, bool staticdata)
 {
     if (staticdata)
     {
@@ -66,7 +88,7 @@ void MlBuffer::SetData(size_t size, const void *data, bool staticdata)
     InvalidateBufferState();
 }
 
-void MlBuffer::SetSubData(size_t offset, size_t size, const void *data)
+void MTLBuffer::SetSubData(size_t offset, size_t size, const void *data)
 {
     void * buff = mBuffer;
     if (buff != nullptr)
@@ -76,12 +98,12 @@ void MlBuffer::SetSubData(size_t offset, size_t size, const void *data)
     }
 }
 
-void MlBuffer::Resize(size_t newsize)
+void MTLBuffer::Resize(size_t newsize)
 {
     buffersize = newsize;
 }
 
-void MlBuffer::Map()
+void MTLBuffer::Map()
 {
     if (!mPersistent)
     {
@@ -90,7 +112,7 @@ void MlBuffer::Map()
     }
 }
 
-void MlBuffer::Unmap()
+void MTLBuffer::Unmap()
 {
     if (!mPersistent)
     {
@@ -99,17 +121,17 @@ void MlBuffer::Unmap()
     }
 }
 
-void* MlBuffer::GetData()
+void* MTLBuffer::GetData()
 {
     return mBuffer;
 }
 
-void *MlBuffer::Lock(unsigned int size)
+void *MTLBuffer::Lock(unsigned int size)
 {
     return mBuffer;
 }
 
-void MlBuffer::Unlock()
+void MTLBuffer::Unlock()
 {
     InvalidateBufferState();
 }
@@ -117,7 +139,7 @@ void MlBuffer::Unlock()
 /////////////////////////////////////////////////////////////////////////////
 
 
-void MlVertexBuffer::SetFormat(int numBindingPoints, int numAttributes, size_t stride, const FVertexBufferAttribute *attrs)
+void MTLVertexBuffer::SetFormat(int numBindingPoints, int numAttributes, size_t stride, const FVertexBufferAttribute *attrs)
 {
     static int VFmtToGLFmt[] = { MTLVertexFormatFloat, MTLVertexFormatFloat, MTLVertexFormatFloat, MTLVertexFormatFloat, MTLVertexFormatUInt, MTLVertexFormatUInt1010102Normalized };
     static uint8_t VFmtToSize[] = {4, 3, 2, 1, 4, 4};
@@ -140,17 +162,17 @@ void MlVertexBuffer::SetFormat(int numBindingPoints, int numAttributes, size_t s
     }
 }
 
-MlVertexBuffer::MlVertexBuffer()
+MTLVertexBuffer::MTLVertexBuffer()
 {
     option = MTLResourceStorageModeShared;
 }
 
-MlVertexBuffer::~MlVertexBuffer()
+MTLVertexBuffer::~MTLVertexBuffer()
 {
 
 }
 
-void MlVertexBuffer::Bind(int *offsets)
+void MTLVertexBuffer::Bind(int *offsets)
 {
  
     for(auto &attrinf : mAttributeInfo)
@@ -167,7 +189,7 @@ void MlVertexBuffer::Bind(int *offsets)
 /////////////////////////////////////////////////////////////////////////////
 
 
-void MlDataBuffer::BindRange(FRenderState* state, size_t start, size_t length)
+void MTLDataBuffer::BindRange(FRenderState* state, size_t start, size_t length)
 {
     HWViewpointUniforms *uniforms = ((HWViewpointUniforms*)((float*)mBuffer + (start/4)));
     //HWViewpointUniforms *uniforms1 = ((HWViewpointUniforms*)malloc(length));
@@ -202,7 +224,7 @@ void MlDataBuffer::BindRange(FRenderState* state, size_t start, size_t length)
     hwUniforms->mClipHeightDirection = uniforms[index].mClipHeightDirection;
     hwUniforms->mShadowmapFilter = uniforms[index].mShadowmapFilter;
 
-    //id<MTLBuffer> buff = [device newBufferWithBytes:hwUniforms length:sizeof(hwUniforms) options:MTLResourceStorageModeShared];
+    //OBJC_ID(MTLBuffer) buff = [device newBufferWithBytes:hwUniforms length:sizeof(hwUniforms) options:MTLResourceStorageModeShared];
     //ml_RenderState.setVertexBuffer(buff, 4);
 }
 
