@@ -31,6 +31,7 @@
 #include "hwrenderer/utility/hw_clock.h"
 #include "hwrenderer/utility/hw_vrmodes.h"
 #include "hwrenderer/models/hw_models.h"
+#include "hwrenderer/utility/hw_cvars.h"
 
 #include "metal/system/ml_buffer.h"
 #include "metal/renderer/ml_renderer.h"
@@ -67,18 +68,21 @@ void MetalFrameBuffer::Draw2D()
     }
 }
 
+void MetalFrameBuffer::EndFrame()
+{
+    MLRenderer->ml_RenderState->EndEncoding();
+}
+
 void MetalFrameBuffer::BeginFrame()
 {
     SetViewportRects(nullptr);
     if (MLRenderer != nullptr)
     {
         MLRenderer->BeginFrame();
-        //MetalCocoaView* const window = GetMacWindow();
+        //printf("Begin Frame !\n");
         dispatch_semaphore_wait(MLRenderer->semaphore, DISPATCH_TIME_FOREVER);
-        //MLRenderer->mScreenBuffers->mDrawable = [window getDrawable];
         if (true)
         {
-            
             renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
             //@autoreleasepool
             {
@@ -150,6 +154,29 @@ sector_t *MetalFrameBuffer::RenderView(player_t *player)
     return nullptr;
 }
 
+//void MetalFrameBuffer::PrecacheMaterial(FMaterial *mat, int translation)
+//{
+//    auto tex = mat->tex;
+//    if (tex->isSWCanvas()) return;
+//
+//    // Textures that are already scaled in the texture lump will not get replaced by hires textures.
+//    int flags = mat->isExpanded() ? CTF_Expand : (gl_texture_usehires && !tex->isScaled()) ? CTF_CheckHires : 0;
+//    int numLayers = mat->GetLayers();
+//    auto base = static_cast<MTLHardwareTexture*>(mat->GetLayer(0, translation));
+//
+//    if (base->BindOrCreate(tex, 0, CLAMP_NONE, translation, flags, nullptr))
+//    {
+//        for (int i = 1; i < numLayers; i++)
+//        {
+//            FTexture *layer;
+//            auto systex = static_cast<MTLHardwareTexture*>(mat->GetLayer(i, 0, &layer));
+//            systex->BindOrCreate(layer, i, CLAMP_NONE, 0, mat->isExpanded() ? CTF_Expand : 0, nullptr);
+//        }
+//    }
+//    // unbind everything.
+//    //MTLHardwareTexture::UnbindAll();
+//}
+
 void MetalFrameBuffer::InitializeState()
 {
    
@@ -175,6 +202,11 @@ void MetalFrameBuffer::TextureFilterChanged()
 {
     if (MLRenderer != NULL && MLRenderer->mSamplerManager != NULL)
         MLRenderer->mSamplerManager->SetTextureFilterMode();
+}
+
+FModelRenderer* MetalFrameBuffer::CreateModelRenderer(int mli)
+{
+    return new FHWModelRenderer(nullptr, *MLRenderer->ml_RenderState, mli);
 }
 
 void MetalFrameBuffer::SetTextureFilterMode()
@@ -241,7 +273,7 @@ void MetalFrameBuffer::Update()
     MLRenderer->Flush();
     Flush3D.Unclock();
     //Swap();
-    //MLRenderer->ml_RenderState->EndFrame();
+    MLRenderer->ml_RenderState->EndFrame();
     Super::Update();
 }
 
@@ -262,4 +294,37 @@ uint32_t MetalFrameBuffer::GetCaps()
     return (uint32_t)FlagSet;
 }
 
+FTexture* MetalFrameBuffer::WipeStartScreen()
+{
+    SetViewportRects(nullptr);
+    auto tex = new FWrapperTexture(mScreenViewport.width, mScreenViewport.height, 1);
+    auto systex = static_cast<MTLHardwareTexture*>(tex->GetSystemTexture());
+    systex->CreateTexture((unsigned char*)MLRenderer->mScreenBuffers->mSceneFB.buffer.contents, mScreenViewport.width, mScreenViewport.height, 0, false, 0, "WipeStartScreen");
+    return (FTexture*)systex;
 }
+
+FTexture* MetalFrameBuffer::WipeEndScreen()
+{
+    //GetPostprocess()->SetActiveRenderTarget();
+    Draw2D();
+    m2DDrawer.Clear();
+
+    auto tex = new FWrapperTexture(mScreenViewport.width, mScreenViewport.height, 1);
+    auto systex = static_cast<MTLHardwareTexture*>(tex->GetSystemTexture());
+
+    systex->CreateTexture((unsigned char*)MLRenderer->mScreenBuffers->mSceneFB.buffer.contents, mScreenViewport.width, mScreenViewport.height, 0, false, 0, "WipeStartScreen");
+
+    return (FTexture*)systex;
+    
+    //MLRenderer->Flush();
+    //const auto &viewport = screen->mScreenViewport;
+    //auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);
+    //tex->GetSystemTexture()->CreateTexture(NULL, viewport.width, viewport.height, 0, false, 0, "WipeEndScreen");
+    //static_cast<MTLHardwareTexture*>(tex->GetSystemTexture())->Bind(0, false);
+    //[MLRenderer->ml_RenderState->renderCommandEncoder endEncoding];
+    //screen->BeginFrame();
+    //return tex;
+}
+
+}
+    

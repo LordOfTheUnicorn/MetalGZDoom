@@ -902,17 +902,17 @@ void D_Display ()
 	{
 		if (wipe != nullptr) delete wipe;
 		wipe = nullptr;
-		NetUpdate ();			// send out any new accumulation
+		NetUpdate ();		// send out any new accumulation
 		// normal update
 		// draw ZScript UI stuff
 		C_DrawConsole ();	// draw console
-		M_Drawer ();			// menu is drawn even on top of everything
+		M_Drawer ();		// menu is drawn even on top of everything
 		FStat::PrintStat ();
 		screen->End2DAndUpdate ();
 	}
 	else
 	{
-		// wipe update
+		// wipe updates
         printf("wipe update\n");
 		uint64_t wipestart, nowtime, diff;
 		bool done;
@@ -921,6 +921,7 @@ void D_Display ()
 		I_FreezeTime(true);
 		screen->End2D();
 		auto wipend = screen->WipeEndScreen ();
+        screen->EndFrame();
 		auto wiper = Wiper::Create(wipe_type);
 		wiper->SetTextures(wipe, wipend);
 
@@ -937,6 +938,7 @@ void D_Display ()
 			} while (diff < 1);
 			wipestart = nowtime;
 			screen->Begin2D();
+            screen->BeginFrame();
 			done = wiper->Run(1);
 			C_DrawConsole ();	// console and
 			M_Drawer ();			// menu are drawn even on top of wipes
@@ -1003,7 +1005,8 @@ void D_DoomLoop ()
 
 	for (;;)
 	{
-        @autoreleasepool {
+        @autoreleasepool
+        {
 		try
 		{
 			// frame syncronous IO operations

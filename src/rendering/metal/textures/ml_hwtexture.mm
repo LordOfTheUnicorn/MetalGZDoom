@@ -313,7 +313,10 @@ bool MTLHardwareTexture::BindOrCreate(FTexture *tex, int texunit, int clampmode,
     MLRenderer->mSamplerManager->Bind(texunit, clampmode, 255);
     if (encoder)
     {
-        [encoder setFragmentTexture:metalState[texid].mTextures atIndex:1];
+        if (metalState[texid].Id == -1)
+            [encoder setFragmentTexture:metalState[texid - 1].mTextures atIndex:1];
+        else
+            [encoder setFragmentTexture:metalState[texid].mTextures atIndex:1];
         MLRenderer->mSamplerManager->BindToShader(encoder);
     }
     return true;

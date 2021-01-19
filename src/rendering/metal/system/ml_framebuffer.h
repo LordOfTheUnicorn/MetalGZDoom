@@ -82,9 +82,10 @@ public:
     void SetTextureFilterMode() override;
     IHardwareTexture *CreateHardwareTexture() override;
     //void PrecacheMaterial(FMaterial *mat, int translation) override;
-    //FModelRenderer *CreateModelRenderer(int mli) override;
+    FModelRenderer *CreateModelRenderer(int mli) override;
     void TextureFilterChanged() override;
     void BeginFrame() override;
+    void EndFrame()   override;
     //void SetViewportRects(IntRect *bounds) override;
     //void BlurScene(float amount) override;
     //IIndexBuffer *CreateIndexBuffer() override;
@@ -97,8 +98,8 @@ public:
     void Draw2D() override;
     void PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D) override;
     //
-    //FTexture *WipeStartScreen() override;
-    //FTexture *WipeEndScreen() override;
+    FTexture *WipeStartScreen() override;
+    FTexture *WipeEndScreen() override;
     bool IsHWGammaActive() const { return HWGammaActive; }
     bool HWGammaActive = false;            // Are we using hardware or software gamma?
     

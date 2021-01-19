@@ -415,7 +415,7 @@ void MTLRenderState::CreateRenderPipelineState()
 
 bool MTLRenderState::ApplyShader()
 {
-    @autoreleasepool
+    //@autoreleasepool
     {
     static const float nulvec[] = { 0.f, 0.f, 0.f, 0.f };
     MTLVertexBuffer* vertexBuffer = static_cast<MTLVertexBuffer*>(mVertexBuffer);
@@ -680,27 +680,27 @@ void MTLRenderState::CreateRenderState(MTLRenderPassDescriptor * renderPassDescr
     
     if (mtl_vertexBuffer[0].length == 0)
     {
-        mtl_vertexBuffer[0] = [device newBufferWithLength:100000 options:MTLResourceStorageModeShared];
-        mtl_vertexBuffer[1] = [device newBufferWithLength:100000 options:MTLResourceStorageModeShared];
-        mtl_vertexBuffer[2] = [device newBufferWithLength:100000 options:MTLResourceStorageModeShared];
+        mtl_vertexBuffer[0] = [device newBufferWithLength:600000 options:MTLResourceStorageModeShared];
+        mtl_vertexBuffer[1] = [device newBufferWithLength:600000 options:MTLResourceStorageModeShared];
+        mtl_vertexBuffer[2] = [device newBufferWithLength:600000 options:MTLResourceStorageModeShared];
         
         needDeleteVB = true;
     }
     
     if (mtl_indexBuffer[0].length == 0)
     {
-        mtl_indexBuffer[0] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
-        mtl_indexBuffer[1] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
-        mtl_indexBuffer[2] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
+        mtl_indexBuffer[0] = [device newBufferWithLength:600000 options:MTLResourceStorageModeShared];
+        mtl_indexBuffer[1] = [device newBufferWithLength:600000 options:MTLResourceStorageModeShared];
+        mtl_indexBuffer[2] = [device newBufferWithLength:600000 options:MTLResourceStorageModeShared];
         
         needDeleteIB = true;
     }
     
     if (mtl_index[0].length == 0)
     {
-        mtl_index[0] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
-        mtl_index[1] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
-        mtl_index[2] = [device newBufferWithLength:400000 options:MTLResourceStorageModeShared];
+        mtl_index[0] = [device newBufferWithLength:600000 options:MTLResourceStorageModeShared];
+        mtl_index[1] = [device newBufferWithLength:600000 options:MTLResourceStorageModeShared];
+        mtl_index[2] = [device newBufferWithLength:600000 options:MTLResourceStorageModeShared];
         
         needDeleteIB = true;
     }
@@ -759,6 +759,22 @@ void MTLRenderState::EndFrame()
     offsetIB[0] = offsetIB[1] = 0;
     indexOffset[0] = indexOffset[1] = 0;
     //printf("EndFrame\n");
+    needCpyBuffer = true;
+}
+
+void MTLRenderState::EndEncoding()
+{
+    //if (MLRenderer->mScreenBuffers->mDrawable)
+    //    [commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
+    
+    [renderCommandEncoder endEncoding];
+    [commandBuffer commit];
+    //[commandBuffer waitUntilCompleted];
+    currentIndexVB = currentIndexVB == 2 ? 0 : currentIndexVB + 1;
+    offsetVB[0] = offsetVB[1] = 0;
+    offsetIB[0] = offsetIB[1] = 0;
+    indexOffset[0] = indexOffset[1] = 0;
+    printf("EndEncoding\n");
     needCpyBuffer = true;
 }
 
@@ -847,13 +863,13 @@ void MTLRenderState::ApplyBlendMode()
     }
 
     // Checks must be disabled until all draw code has been converted.
-    //if (srcblend != stSrcBlend || dstblend != stDstBlend)
+    if (srcblend != stSrcBlend || dstblend != stDstBlend)
     {
         stSrcBlend = srcblend;
         stDstBlend = dstblend;
        // glBlendFunc(srcblend, dstblend);
     }
-    //if (blendequation != stBlendEquation)
+    if (blendequation != stBlendEquation)
     {
         stBlendEquation = blendequation;
        // glBlendEquation(blendequation);
@@ -872,7 +888,7 @@ static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine,
 
 void MTLRenderState::Draw(int dt, int index, int count, bool apply)
 {
-    @autoreleasepool
+    //@autoreleasepool
     {
         if (apply)
         {
@@ -928,7 +944,7 @@ void MTLRenderState::CreateFanToTrisIndexBuffer()
 
 void MTLRenderState::DrawIndexed(int dt, int index, int count, bool apply)
 {
-    @autoreleasepool
+    //@autoreleasepool
     {
         if (apply)
         {

@@ -375,7 +375,6 @@ void MTLRenderer::PostProcessScene(int fixedcm, const std::function<void()> &aft
     MTLPPRenderState renderstate(mBuffers);
 
     hw_postprocess.Pass1(&renderstate, fixedcm, sceneWidth, sceneHeight);
-    //mBuffers->BindCurrentFB();
     afterBloomDrawEndScene2D();
     hw_postprocess.Pass2(&renderstate, fixedcm, sceneWidth, sceneHeight);
 }
@@ -413,11 +412,11 @@ void MTLRenderer::RenderScreenQuad()
     passDesc.stencilAttachment.texture = MLRenderer->mScreenBuffers->mSceneDepthStencilTex;
     
     passDesc.depthAttachment.loadAction = MTLLoadActionClear;
-    passDesc.depthAttachment.storeAction = MTLStoreActionStore;
+    passDesc.depthAttachment.storeAction = MTLStoreActionDontCare;
     passDesc.depthAttachment.clearDepth = 1.f;
     
     passDesc.stencilAttachment.loadAction = MTLLoadActionClear;
-    passDesc.stencilAttachment.storeAction = MTLStoreActionStore;
+    passDesc.stencilAttachment.storeAction = MTLStoreActionDontCare;
     passDesc.stencilAttachment.clearStencil = 0.f;
     
     passDesc.renderTargetWidth  = GetMetalFrameBuffer()->GetClientWidth();//mOutputLetterbox.width;
@@ -530,7 +529,7 @@ void MTLRenderer::RenderScreenQuad()
                                                                 indexBuffer:buff
                                                           indexBufferOffset:0];
     [buff release];
-    MLRenderer->ml_RenderState->EndFrame();
+//    MLRenderer->ml_RenderState->EndFrame();
 }
 
 void MetalFrameBuffer::CleanForRestart()
