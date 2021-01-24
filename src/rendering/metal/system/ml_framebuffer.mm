@@ -94,17 +94,17 @@ void MetalFrameBuffer::BeginFrame()
                     desc.width  = GetMetalFrameBuffer()->GetClientWidth();
                     desc.height = GetMetalFrameBuffer()->GetClientHeight();
                     desc.pixelFormat = MTLPixelFormatRGBA16Float;
-                    desc.storageMode = MTLStorageModePrivate;
+                    desc.storageMode = MTLStorageModeShared;
                     desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
                     desc.textureType = MTLTextureType2D;
 
                     MLRenderer->mScreenBuffers->mSceneFB = [device newTextureWithDescriptor:desc];
-                    renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mSceneFB;//MLRenderer->mScreenBuffers->mDrawable.texture;
+                    renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mSceneFB;
                     [desc release];
                 }
                 else
                 {
-                    renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mSceneFB;//MLRenderer->mScreenBuffers->mDrawable.texture;
+                    renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mSceneFB;
                 }
                 
                 // Color render target
@@ -296,34 +296,29 @@ uint32_t MetalFrameBuffer::GetCaps()
 
 FTexture* MetalFrameBuffer::WipeStartScreen()
 {
-    SetViewportRects(nullptr);
-    auto tex = new FWrapperTexture(mScreenViewport.width, mScreenViewport.height, 1);
-    auto systex = static_cast<MTLHardwareTexture*>(tex->GetSystemTexture());
-    systex->CreateTexture((unsigned char*)MLRenderer->mScreenBuffers->mSceneFB.buffer.contents, mScreenViewport.width, mScreenViewport.height, 0, false, 0, "WipeStartScreen");
-    return (FTexture*)systex;
+    const auto &viewport = screen->mScreenViewport;
+    
+    auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);
+    MTLRegion region = MTLRegionMake2D(0, 0, viewport.width, viewport.height);
+    void* val = malloc(viewport.width * viewport.height);
+    [MLRenderer->mScreenBuffers->mSceneFB getBytes:val bytesPerRow:viewport.width * 8 fromRegion:region mipmapLevel:0];
+    
+    tex->GetSystemTexture()->CreateTexture((unsigned char *)val, viewport.width, viewport.height, 0, false, 0, "WipeStartScreen");
+    free(val);
+    return tex;
 }
 
 FTexture* MetalFrameBuffer::WipeEndScreen()
 {
-    //GetPostprocess()->SetActiveRenderTarget();
-    Draw2D();
-    m2DDrawer.Clear();
-
-    auto tex = new FWrapperTexture(mScreenViewport.width, mScreenViewport.height, 1);
-    auto systex = static_cast<MTLHardwareTexture*>(tex->GetSystemTexture());
-
-    systex->CreateTexture((unsigned char*)MLRenderer->mScreenBuffers->mSceneFB.buffer.contents, mScreenViewport.width, mScreenViewport.height, 0, false, 0, "WipeStartScreen");
-
-    return (FTexture*)systex;
-    
-    //MLRenderer->Flush();
-    //const auto &viewport = screen->mScreenViewport;
-    //auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);
-    //tex->GetSystemTexture()->CreateTexture(NULL, viewport.width, viewport.height, 0, false, 0, "WipeEndScreen");
-    //static_cast<MTLHardwareTexture*>(tex->GetSystemTexture())->Bind(0, false);
-    //[MLRenderer->ml_RenderState->renderCommandEncoder endEncoding];
-    //screen->BeginFrame();
-    //return tex;
+    MLRenderer->Flush();
+    const auto &viewport = screen->mScreenViewport;
+    auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);
+    MTLRegion region = MTLRegionMake2D(0, 0, viewport.width, viewport.height);
+    void* val = malloc(viewport.width * viewport.height);
+    [MLRenderer->mScreenBuffers->mSceneFB getBytes:val bytesPerRow:viewport.width * 8 fromRegion:region mipmapLevel:0];
+    tex->GetSystemTexture()->CreateTexture((unsigned char*)val, viewport.width, viewport.height, 0, false, 0, "WipeEndScreen");
+    free(val);
+    return tex;
 }
 
 }
