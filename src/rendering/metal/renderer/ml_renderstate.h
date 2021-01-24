@@ -237,8 +237,6 @@ public:
     }
 
     void ApplyMaterial(FMaterial *mat, int clampmode, int translation, int overrideshader);
-
-    void EndEncoding();
     void EndFrame();
     void Apply();
     void ApplyBuffers();

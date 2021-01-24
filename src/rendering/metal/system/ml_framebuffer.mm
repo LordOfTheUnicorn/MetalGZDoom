@@ -68,11 +68,6 @@ void MetalFrameBuffer::Draw2D()
     }
 }
 
-void MetalFrameBuffer::EndFrame()
-{
-    MLRenderer->ml_RenderState->EndEncoding();
-}
-
 void MetalFrameBuffer::BeginFrame()
 {
     SetViewportRects(nullptr);

@@ -439,7 +439,6 @@ public:
 	virtual FModelRenderer *CreateModelRenderer(int mli) { return nullptr; }
 	virtual void TextureFilterChanged() {}
 	virtual void BeginFrame() {}
-    virtual void EndFrame() {}
 	virtual void SetWindowSize(int w, int h) {}
 	virtual void StartPrecaching() {}
 

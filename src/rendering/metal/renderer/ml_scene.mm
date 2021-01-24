@@ -103,7 +103,6 @@ void MTLRenderer::DrawScene(HWDrawInfo *di, int drawmode)
     if (!ml_no_skyclear)
     {
         screen->mPortalState->RenderFirstSkyPortal(recursion, di, *ml_RenderState);
-        //ml_RenderState->EndFrame();
     }
 
     di->RenderScene(*ml_RenderState);
@@ -122,7 +121,6 @@ void MTLRenderer::DrawScene(HWDrawInfo *di, int drawmode)
     // Handle all portals after rendering the opaque objects but before
     // doing all translucent stuff
     recursion++;
-    //ml_RenderState->EndFrame();
     screen->mPortalState->EndFrame(di, *ml_RenderState);
     recursion--;
     di->RenderTranslucent(*ml_RenderState);

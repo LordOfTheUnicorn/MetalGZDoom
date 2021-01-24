@@ -762,22 +762,6 @@ void MTLRenderState::EndFrame()
     needCpyBuffer = true;
 }
 
-void MTLRenderState::EndEncoding()
-{
-    //if (MLRenderer->mScreenBuffers->mDrawable)
-    //    [commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
-    
-    [renderCommandEncoder endEncoding];
-    [commandBuffer commit];
-    //[commandBuffer waitUntilCompleted];
-    currentIndexVB = currentIndexVB == 2 ? 0 : currentIndexVB + 1;
-    offsetVB[0] = offsetVB[1] = 0;
-    offsetIB[0] = offsetIB[1] = 0;
-    indexOffset[0] = indexOffset[1] = 0;
-    printf("EndEncoding\n");
-    needCpyBuffer = true;
-}
-
 //===========================================================================
 //
 //    Binds a texture to the renderer
