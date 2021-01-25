@@ -85,7 +85,6 @@ public:
     FModelRenderer *CreateModelRenderer(int mli) override;
     void TextureFilterChanged() override;
     void BeginFrame() override;
-    void EndFrame()   override;
     //void SetViewportRects(IntRect *bounds) override;
     //void BlurScene(float amount) override;
     //IIndexBuffer *CreateIndexBuffer() override;
