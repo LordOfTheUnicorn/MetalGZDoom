@@ -106,7 +106,7 @@ public:
 
     //bool CreateTexture(uint8_t texID, int w, int h, int pixelsize, int format, const void *pixels, OBJC_ID(MTLDevice) device);
     unsigned int CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name) override;
-    unsigned int CreateWipeScreen(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name);
+    unsigned int CreateWipeScreen(unsigned char * buffer, int w, int h, int texunit, bool mipmap, const char *name);
     bool CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, const char *name);
     void ResetAll();
     void Reset(size_t id);

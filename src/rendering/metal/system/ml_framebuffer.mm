@@ -294,17 +294,19 @@ FTexture* MetalFrameBuffer::WipeStartScreen()
     const auto &viewport = screen->mScreenViewport;
     
     auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);
+    auto systex = static_cast<MTLHardwareTexture*>(tex->GetSystemTexture());
     MTLRegion region = MTLRegionMake2D(0, 0, viewport.width, viewport.height);
     void* val = malloc(viewport.width * viewport.height);
     [MLRenderer->mScreenBuffers->mSceneFB getBytes:val bytesPerRow:viewport.width * 8 fromRegion:region mipmapLevel:0];
-    
-    tex->GetSystemTexture()->CreateTexture((unsigned char *)val, viewport.width, viewport.height, 0, false, 0, "WipeStartScreen");
+    //      CreateWipeScreen(unsigned char * buffer, int w, int h, int texunit, bool mipmap, const char *name)
+    systex->CreateWipeScreen((unsigned char *)val, viewport.width, viewport.height, 0, false, "WipeStartScreen");
     free(val);
     return tex;
 }
 
 FTexture* MetalFrameBuffer::WipeEndScreen()
 {
+    return nullptr;
     MLRenderer->Flush();
     const auto &viewport = screen->mScreenViewport;
     auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);

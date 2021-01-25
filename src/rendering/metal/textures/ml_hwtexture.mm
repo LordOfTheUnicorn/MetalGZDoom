@@ -115,11 +115,9 @@ int MTLHardwareTexture::Bind(int texunit, bool needmipmap)
     return -1;
 }
 
-unsigned int MTLHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name)
+unsigned int MTLHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w, int h, int texunit, bool mipmap, const char *name)
 {
-    //nameTex(name);
     int rh,rw;
-    //int texformat = MTLPixelFormatBGRA8Unorm;//GL_RGBA8;// TexFormat[gl_texture_format];
     bool deletebuffer=false;
 
     rw = w;//GetTexDimension(w);
@@ -149,23 +147,30 @@ unsigned int MTLHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w,
     }
     
     
-    OBJC_ID(MTLTexture) tex;
+
     MTLTextureDescriptor *desc = [MTLTextureDescriptor new];
     desc.width = rw;
     desc.height = rh;
-    desc.pixelFormat = MTLPixelFormatBGRA8Unorm;
+//  desc.pixelFormat = MTLPixelFormatBGRA8Unorm;
+    desc.pixelFormat = MTLPixelFormatRGBA16Float;
     desc.storageMode = MTLStorageModeManaged;
     desc.usage = MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
     desc.textureType = MTLTextureType2D;
     desc.sampleCount = 1;
     
-    tex = [device newTextureWithDescriptor:desc];
+    int currentTexId = FindFreeTexIndex();
+    
+    if (currentTexId == -1)
+        assert(true);
+    
+    metalState[currentTexId].mTextures = [device newTextureWithDescriptor:desc];
+    metalState[currentTexId].Id = texunit;
     [desc release];
     
     if(buffer)
     {
         MTLRegion region = MTLRegionMake2D(0, 0, rw, rh);
-        [tex replaceRegion:region mipmapLevel:0 withBytes:buffer bytesPerRow:(4*rw)];
+        [metalState[currentTexId].mTextures replaceRegion:region mipmapLevel:0 withBytes:buffer bytesPerRow:(8*rw)];
     }
 
 
@@ -177,8 +182,7 @@ unsigned int MTLHardwareTexture::CreateWipeScreen(unsigned char * buffer, int w,
         mipmapped = true;
     }
     
-    return 0;
-    
+    return currentTexId;
 }
 
 unsigned int MTLHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int texunit, bool mipmap, int translation, const char *name)
@@ -244,6 +248,9 @@ bool MTLHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int
     {
         MTLRegion region = MTLRegionMake2D(0, 0, rw, rh);
         [metalState[currentTexId].mTextures replaceRegion:region mipmapLevel:0 withBytes:buffer bytesPerRow:(4*rw)];
+//        void* val = malloc(rw*rh);
+//        [metalState[currentTexId].mTextures getBytes:val bytesPerRow:rh*8 fromRegion:region mipmapLevel:0];
+//        printf("dd");
     }
 
 
