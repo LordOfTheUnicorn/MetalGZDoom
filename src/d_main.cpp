@@ -921,7 +921,6 @@ void D_Display ()
 		I_FreezeTime(true);
 		screen->End2D();
 		auto wipend = screen->WipeEndScreen ();
-        screen->EndFrame();
 		auto wiper = Wiper::Create(wipe_type);
 		wiper->SetTextures(wipe, wipend);
 
