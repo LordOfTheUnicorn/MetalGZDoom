@@ -143,9 +143,7 @@ void MTLRenderState::ApplyState()
         ApplyMaterial(mMaterial.mMaterial, mMaterial.mClampMode, mMaterial.mTranslation, mMaterial.mOverrideShader);
         mMaterial.mChanged = false;
     }
-    
-    //commandBuffer = [commandQueue commandBuffer];
-    //commandBuffer.label = @"RenderStateCommandBuffer";
+
 
     //Is this need or not?
     if (mBias.mChanged)
@@ -248,7 +246,7 @@ void MTLRenderState::InitialaziState()
 {
     Reset();
     NSError* error = nil;
-    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/egrigorchuk/git/MetalGZDoom/metalShaders/doomMetallib.metallib"
+    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib"
                                                                      error:&error];
     if (VShader == nil)        VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
     if (FShader  == nil)       FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
@@ -415,7 +413,7 @@ void MTLRenderState::CreateRenderPipelineState()
 
 bool MTLRenderState::ApplyShader()
 {
-    //@autoreleasepool
+    @autoreleasepool
     {
     static const float nulvec[] = { 0.f, 0.f, 0.f, 0.f };
     MTLVertexBuffer* vertexBuffer = static_cast<MTLVertexBuffer*>(mVertexBuffer);
@@ -758,7 +756,7 @@ void MTLRenderState::EndFrame()
     offsetVB[0] = offsetVB[1] = 0;
     offsetIB[0] = offsetIB[1] = 0;
     indexOffset[0] = indexOffset[1] = 0;
-    //printf("EndFrame\n");
+    printf("End   Frame !\n");
     needCpyBuffer = true;
 }
 
@@ -872,7 +870,7 @@ static MTLPrimitiveType dt2ml[] = { MTLPrimitiveTypePoint, MTLPrimitiveTypeLine,
 
 void MTLRenderState::Draw(int dt, int index, int count, bool apply)
 {
-    //@autoreleasepool
+    @autoreleasepool
     {
         if (apply)
         {
@@ -928,7 +926,7 @@ void MTLRenderState::CreateFanToTrisIndexBuffer()
 
 void MTLRenderState::DrawIndexed(int dt, int index, int count, bool apply)
 {
-    //@autoreleasepool
+    @autoreleasepool
     {
         if (apply)
         {

@@ -248,9 +248,6 @@ bool MTLHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int
     {
         MTLRegion region = MTLRegionMake2D(0, 0, rw, rh);
         [metalState[currentTexId].mTextures replaceRegion:region mipmapLevel:0 withBytes:buffer bytesPerRow:(4*rw)];
-//        void* val = malloc(rw*rh);
-//        [metalState[currentTexId].mTextures getBytes:val bytesPerRow:rh*8 fromRegion:region mipmapLevel:0];
-//        printf("dd");
     }
 
 

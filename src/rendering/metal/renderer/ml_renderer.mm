@@ -464,7 +464,7 @@ void MTLRenderer::RenderScreenQuad()
     vertexDesc.layouts[1].stepFunction = MTLVertexStepFunctionPerVertex;
     //##############################################################
     NSError* error = nil;
-    OBJC_ID(MTLLibrary) _defaultLibrary = [device newLibraryWithFile: @"/Users/egrigorchuk/git/MetalGZDoom/metalShaders/doomMetallib.metallib" error:&error];
+    OBJC_ID(MTLLibrary) _defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib" error:&error];
     if (error)
         assert(true);
     OBJC_ID(MTLFunction) vs = [_defaultLibrary newFunctionWithName:@"vertexSecondRT"];
@@ -529,7 +529,6 @@ void MTLRenderer::RenderScreenQuad()
                                                                 indexBuffer:buff
                                                           indexBufferOffset:0];
     [buff release];
-//    MLRenderer->ml_RenderState->EndFrame();
 }
 
 void MetalFrameBuffer::CleanForRestart()

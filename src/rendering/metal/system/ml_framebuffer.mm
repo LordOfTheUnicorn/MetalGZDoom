@@ -74,12 +74,12 @@ void MetalFrameBuffer::BeginFrame()
     if (MLRenderer != nullptr)
     {
         MLRenderer->BeginFrame();
-        //printf("Begin Frame !\n");
+        printf("Begin Frame !\n");
         dispatch_semaphore_wait(MLRenderer->semaphore, DISPATCH_TIME_FOREVER);
         if (true)
         {
             renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
-            //@autoreleasepool
+            @autoreleasepool
             {
             if (MLRenderer->mScreenBuffers)
             {
@@ -89,18 +89,15 @@ void MetalFrameBuffer::BeginFrame()
                     desc.width  = GetMetalFrameBuffer()->GetClientWidth();
                     desc.height = GetMetalFrameBuffer()->GetClientHeight();
                     desc.pixelFormat = MTLPixelFormatRGBA16Float;
-                    desc.storageMode = MTLStorageModeShared;
+                    desc.storageMode = MTLStorageModePrivate;
                     desc.usage = MTLTextureUsageRenderTarget | MTLTextureUsageShaderWrite | MTLTextureUsageShaderRead;
                     desc.textureType = MTLTextureType2D;
 
                     MLRenderer->mScreenBuffers->mSceneFB = [device newTextureWithDescriptor:desc];
-                    renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mSceneFB;
                     [desc release];
                 }
-                else
-                {
-                    renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mSceneFB;
-                }
+                
+                renderPassDescriptor.colorAttachments[0].texture = MLRenderer->mScreenBuffers->mSceneFB;
                 
                 // Color render target
                 renderPassDescriptor.colorAttachments[0].loadAction  = MTLLoadActionClear;
@@ -296,25 +293,58 @@ FTexture* MetalFrameBuffer::WipeStartScreen()
     auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);
     auto systex = static_cast<MTLHardwareTexture*>(tex->GetSystemTexture());
     MTLRegion region = MTLRegionMake2D(0, 0, viewport.width, viewport.height);
-    void* val = malloc(viewport.width * viewport.height);
-    [MLRenderer->mScreenBuffers->mSceneFB getBytes:val bytesPerRow:viewport.width * 8 fromRegion:region mipmapLevel:0];
-    //      CreateWipeScreen(unsigned char * buffer, int w, int h, int texunit, bool mipmap, const char *name)
-    systex->CreateWipeScreen((unsigned char *)val, viewport.width, viewport.height, 0, false, "WipeStartScreen");
-    free(val);
+    @autoreleasepool
+    {
+        OBJC_ID(MTLCommandBuffer)localCommandBuffer = [MLRenderer->ml_RenderState->commandQueue commandBuffer];
+        OBJC_ID(MTLBlitCommandEncoder) blit = [localCommandBuffer blitCommandEncoder];
+        OBJC_ID(MTLBuffer) buff = [device newBufferWithLength:viewport.width * viewport.height * 8 options:MTLResourceStorageModeShared];
+        [blit copyFromTexture:MLRenderer->mScreenBuffers->mSceneFB
+                  sourceSlice:0
+                  sourceLevel:0
+                 sourceOrigin:MTLOriginMake(0, 0, 0)
+                   sourceSize:MTLSizeMake(viewport.width, viewport.height, 1)
+                     toBuffer:buff
+            destinationOffset:0
+       destinationBytesPerRow:viewport.width * 8
+     destinationBytesPerImage:viewport.width * viewport.height * 8];
+        [blit endEncoding];
+        [localCommandBuffer commit];
+        [buff release];
+        
+        systex->CreateWipeScreen((unsigned char *)buff.contents, viewport.width, viewport.height, 0, false, "WipeStartScreen");
+    }
+    
     return tex;
 }
 
 FTexture* MetalFrameBuffer::WipeEndScreen()
 {
-    return nullptr;
     MLRenderer->Flush();
     const auto &viewport = screen->mScreenViewport;
     auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);
-    MTLRegion region = MTLRegionMake2D(0, 0, viewport.width, viewport.height);
-    void* val = malloc(viewport.width * viewport.height);
-    [MLRenderer->mScreenBuffers->mSceneFB getBytes:val bytesPerRow:viewport.width * 8 fromRegion:region mipmapLevel:0];
-    tex->GetSystemTexture()->CreateTexture((unsigned char*)val, viewport.width, viewport.height, 0, false, 0, "WipeEndScreen");
-    free(val);
+    auto systex = static_cast<MTLHardwareTexture*>(tex->GetSystemTexture());
+    @autoreleasepool
+    {
+        MTLRegion region = MTLRegionMake2D(0, 0, viewport.width, viewport.height);
+        OBJC_ID(MTLCommandBuffer)localCommandBuffer = [MLRenderer->ml_RenderState->commandQueue commandBuffer];
+        OBJC_ID(MTLBlitCommandEncoder) blit = [localCommandBuffer blitCommandEncoder];
+        OBJC_ID(MTLBuffer) buff = [device newBufferWithLength:viewport.width * viewport.height * 8 options:MTLResourceStorageModeShared];
+        [blit copyFromTexture:MLRenderer->mScreenBuffers->mSceneFB
+                  sourceSlice:0
+                  sourceLevel:0
+                 sourceOrigin:MTLOriginMake(0, 0, 0)
+                   sourceSize:MTLSizeMake(viewport.width, viewport.height, 1)
+                     toBuffer:buff
+            destinationOffset:0
+       destinationBytesPerRow:viewport.width * 8
+     destinationBytesPerImage:viewport.width * viewport.height * 8];
+        [blit endEncoding];
+        [localCommandBuffer commit];
+        [buff release];
+        
+        systex->CreateWipeScreen((unsigned char *)buff.contents, viewport.width, viewport.height, 0, false, "WipeStartEnd");
+    }
+    
     return tex;
 }
 
