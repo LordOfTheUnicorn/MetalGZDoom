@@ -264,8 +264,13 @@ bool MTLHardwareTexture::CreateTexture(unsigned char * buffer, int w, int h, int
 
 bool MTLHardwareTexture::BindOrCreate(FTexture *tex, int texunit, int clampmode, int translation, int flags, OBJC_ID(MTLRenderCommandEncoder) encoder)
 {
-    //if (texunit != -1)
-    //{
+    if (texunit == -1 && encoder)
+    {
+        [encoder setFragmentTexture:metalState[0].mTextures atIndex:1];
+        MLRenderer->mSamplerManager->BindToShader(encoder);
+        return true;
+    }
+    
     int usebright = false;
 
     if (translation <= 0)
@@ -317,10 +322,7 @@ bool MTLHardwareTexture::BindOrCreate(FTexture *tex, int texunit, int clampmode,
     MLRenderer->mSamplerManager->Bind(texunit, clampmode, 255);
     if (encoder)
     {
-        if (metalState[texid].Id == -1)
-            [encoder setFragmentTexture:metalState[texid - 1].mTextures atIndex:1];
-        else
-            [encoder setFragmentTexture:metalState[texid].mTextures atIndex:1];
+        [encoder setFragmentTexture:metalState[texid].mTextures atIndex:1];
         MLRenderer->mSamplerManager->BindToShader(encoder);
     }
     return true;

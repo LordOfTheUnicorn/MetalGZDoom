@@ -751,7 +751,7 @@ void MTLRenderState::EndFrame()
     
     [renderCommandEncoder endEncoding];
     [commandBuffer commit];
-    //[commandBuffer waitUntilCompleted];
+    [commandBuffer waitUntilCompleted];
     currentIndexVB = currentIndexVB == 2 ? 0 : currentIndexVB + 1;
     offsetVB[0] = offsetVB[1] = 0;
     offsetIB[0] = offsetIB[1] = 0;
@@ -798,7 +798,7 @@ void MTLRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translatio
     int flags = mat->isExpanded() ? CTF_Expand : (gl_texture_usehires && !tex->isScaled() && clampmode <= CLAMP_XY) ? CTF_CheckHires : 0;
     int numLayers = mat->GetLayers();
     auto base = static_cast<MTLHardwareTexture*>(mat->GetLayer(0, translation));
-
+    printf("%i\n", tex->GetID().GetIndex());
     if (base->BindOrCreate(tex, tex->GetID().GetIndex(), clampmode, translation, flags, renderCommandEncoder))
     {
         for (int i = 1; i<numLayers; i++)

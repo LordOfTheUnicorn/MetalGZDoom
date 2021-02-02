@@ -75,7 +75,6 @@ void MetalFrameBuffer::BeginFrame()
     {
         MLRenderer->BeginFrame();
         printf("Begin Frame !\n");
-        dispatch_semaphore_wait(MLRenderer->semaphore, DISPATCH_TIME_FOREVER);
         if (true)
         {
             renderPassDescriptor = [MTLRenderPassDescriptor renderPassDescriptor];
@@ -126,11 +125,6 @@ void MetalFrameBuffer::BeginFrame()
         }
         
         MLRenderer->ml_RenderState->CreateRenderState(renderPassDescriptor);
-        
-        [MLRenderer->ml_RenderState->commandBuffer addCompletedHandler:^(OBJC_ID(MTLCommandBuffer) buffer)
-        {
-            dispatch_semaphore_signal(MLRenderer->semaphore);
-        }];
     }
 }
 
@@ -293,7 +287,7 @@ FTexture* MetalFrameBuffer::WipeStartScreen()
     auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);
     auto systex = static_cast<MTLHardwareTexture*>(tex->GetSystemTexture());
     MTLRegion region = MTLRegionMake2D(0, 0, viewport.width, viewport.height);
-    @autoreleasepool
+  //  @autoreleasepool
     {
         OBJC_ID(MTLCommandBuffer)localCommandBuffer = [MLRenderer->ml_RenderState->commandQueue commandBuffer];
         OBJC_ID(MTLBlitCommandEncoder) blit = [localCommandBuffer blitCommandEncoder];
@@ -309,9 +303,9 @@ FTexture* MetalFrameBuffer::WipeStartScreen()
      destinationBytesPerImage:viewport.width * viewport.height * 8];
         [blit endEncoding];
         [localCommandBuffer commit];
-        [buff release];
         
         systex->CreateWipeScreen((unsigned char *)buff.contents, viewport.width, viewport.height, 0, false, "WipeStartScreen");
+        [buff release];
     }
     
     return tex;
@@ -319,32 +313,33 @@ FTexture* MetalFrameBuffer::WipeStartScreen()
 
 FTexture* MetalFrameBuffer::WipeEndScreen()
 {
-    MLRenderer->Flush();
+    //MLRenderer->Flush();
+    MLRenderer->ml_RenderState->EndFrame();
     const auto &viewport = screen->mScreenViewport;
     auto tex = new FWrapperTexture(viewport.width, viewport.height, 1);
     auto systex = static_cast<MTLHardwareTexture*>(tex->GetSystemTexture());
-    @autoreleasepool
+   // @autoreleasepool
     {
-        MTLRegion region = MTLRegionMake2D(0, 0, viewport.width, viewport.height);
         OBJC_ID(MTLCommandBuffer)localCommandBuffer = [MLRenderer->ml_RenderState->commandQueue commandBuffer];
-        OBJC_ID(MTLBlitCommandEncoder) blit = [localCommandBuffer blitCommandEncoder];
-        OBJC_ID(MTLBuffer) buff = [device newBufferWithLength:viewport.width * viewport.height * 8 options:MTLResourceStorageModeShared];
-        [blit copyFromTexture:MLRenderer->mScreenBuffers->mSceneFB
-                  sourceSlice:0
-                  sourceLevel:0
-                 sourceOrigin:MTLOriginMake(0, 0, 0)
-                   sourceSize:MTLSizeMake(viewport.width, viewport.height, 1)
-                     toBuffer:buff
-            destinationOffset:0
-       destinationBytesPerRow:viewport.width * 8
-     destinationBytesPerImage:viewport.width * viewport.height * 8];
-        [blit endEncoding];
-        [localCommandBuffer commit];
-        [buff release];
-        
-        systex->CreateWipeScreen((unsigned char *)buff.contents, viewport.width, viewport.height, 0, false, "WipeStartEnd");
+           OBJC_ID(MTLBlitCommandEncoder) blit = [localCommandBuffer blitCommandEncoder];
+           OBJC_ID(MTLBuffer) buff = [device newBufferWithLength:viewport.width * viewport.height * 8 options:MTLResourceStorageModeShared];
+           [blit copyFromTexture:MLRenderer->mScreenBuffers->mSceneFB
+                     sourceSlice:0
+                     sourceLevel:0
+                    sourceOrigin:MTLOriginMake(0, 0, 0)
+                      sourceSize:MTLSizeMake(viewport.width, viewport.height, 1)
+                        toBuffer:buff
+               destinationOffset:0
+          destinationBytesPerRow:viewport.width * 8
+        destinationBytesPerImage:viewport.width * viewport.height * 8];
+           [blit endEncoding];
+           [localCommandBuffer commit];
+           
+           systex->CreateWipeScreen((unsigned char *)buff.contents, viewport.width, viewport.height, 0, false, "WipeEndScreen");
+           [buff release];
     }
-    
+    //
+    screen->BeginFrame();
     return tex;
 }
 

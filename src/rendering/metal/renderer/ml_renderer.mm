@@ -395,6 +395,7 @@ typedef struct
 
 void MTLRenderer::RenderScreenQuad()
 {
+    dispatch_semaphore_wait(MLRenderer->semaphore, DISPATCH_TIME_FOREVER);
     MTLRenderPassDescriptor*     passDesc = [MTLRenderPassDescriptor renderPassDescriptor];
     MTLRenderPipelineDescriptor* pipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
     MTLVertexDescriptor *vertexDesc = [[MTLVertexDescriptor alloc] init];
@@ -529,6 +530,11 @@ void MTLRenderer::RenderScreenQuad()
                                                                 indexBuffer:buff
                                                           indexBufferOffset:0];
     [buff release];
+    
+    [MLRenderer->ml_RenderState->commandBuffer addCompletedHandler:^(OBJC_ID(MTLCommandBuffer) buffer)
+    {
+        dispatch_semaphore_signal(MLRenderer->semaphore);
+    }];
 }
 
 void MetalFrameBuffer::CleanForRestart()
