@@ -395,7 +395,6 @@ typedef struct
 
 void MTLRenderer::RenderScreenQuad()
 {
-    dispatch_semaphore_wait(MLRenderer->semaphore, DISPATCH_TIME_FOREVER);
     MTLRenderPassDescriptor*     passDesc = [MTLRenderPassDescriptor renderPassDescriptor];
     MTLRenderPipelineDescriptor* pipelineDesc = [[MTLRenderPipelineDescriptor alloc] init];
     MTLVertexDescriptor *vertexDesc = [[MTLVertexDescriptor alloc] init];
@@ -430,6 +429,7 @@ void MTLRenderer::RenderScreenQuad()
     MLRenderer->ml_RenderState->renderCommandEncoder.label = @"RenderScreenQuad";
     [MLRenderer->ml_RenderState->renderCommandEncoder setFrontFacingWinding:MTLWindingClockwise];
     [MLRenderer->ml_RenderState->renderCommandEncoder setCullMode:MTLCullModeNone];
+    
     [MLRenderer->ml_RenderState->renderCommandEncoder setViewport:(MTLViewport)
     {   0.0, 0.0,
         (double)GetMetalFrameBuffer()->GetClientWidth(), (double)GetMetalFrameBuffer()->GetClientHeight(),
@@ -531,10 +531,10 @@ void MTLRenderer::RenderScreenQuad()
                                                           indexBufferOffset:0];
     [buff release];
     
-    [MLRenderer->ml_RenderState->commandBuffer addCompletedHandler:^(OBJC_ID(MTLCommandBuffer) buffer)
-    {
-        dispatch_semaphore_signal(MLRenderer->semaphore);
-    }];
+    //[MLRenderer->ml_RenderState->commandBuffer addCompletedHandler:^(OBJC_ID(MTLCommandBuffer) buffer)
+    //{
+    //    dispatch_semaphore_signal(MLRenderer->semaphore);
+    //}];
 }
 
 void MetalFrameBuffer::CleanForRestart()

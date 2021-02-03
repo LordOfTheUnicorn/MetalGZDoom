@@ -749,14 +749,12 @@ void MTLRenderState::EndFrame()
     if (MLRenderer->mScreenBuffers->mDrawable)
         [commandBuffer presentDrawable:MLRenderer->mScreenBuffers->mDrawable];
     
-    [renderCommandEncoder endEncoding];
+    [renderCommandEncoder endEncoding];    
     [commandBuffer commit];
-    [commandBuffer waitUntilCompleted];
     currentIndexVB = currentIndexVB == 2 ? 0 : currentIndexVB + 1;
     offsetVB[0] = offsetVB[1] = 0;
     offsetIB[0] = offsetIB[1] = 0;
     indexOffset[0] = indexOffset[1] = 0;
-    printf("End   Frame !\n");
     needCpyBuffer = true;
 }
 
@@ -1110,11 +1108,10 @@ void MTLRenderState::SetScissor(int x, int y, int w, int h)
     
     if (w > -1)
     {
-        //glScissor(x, y, w, h);
         [renderCommandEncoder setScissorRect:{static_cast<NSUInteger>(x),
                                               static_cast<NSUInteger>(y),
                                               static_cast<NSUInteger>(w),
-                                              static_cast<NSUInteger>(h - y)}];
+                                              static_cast<NSUInteger>(h)}];
     }
 }
 
