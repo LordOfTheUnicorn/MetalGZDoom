@@ -796,7 +796,7 @@ void MTLRenderState::ApplyMaterial(FMaterial *mat, int clampmode, int translatio
     int flags = mat->isExpanded() ? CTF_Expand : (gl_texture_usehires && !tex->isScaled() && clampmode <= CLAMP_XY) ? CTF_CheckHires : 0;
     int numLayers = mat->GetLayers();
     auto base = static_cast<MTLHardwareTexture*>(mat->GetLayer(0, translation));
-    printf("%i\n", tex->GetID().GetIndex());
+    //printf("%i\n", tex->GetID().GetIndex());
     if (base->BindOrCreate(tex, tex->GetID().GetIndex(), clampmode, translation, flags, renderCommandEncoder))
     {
         for (int i = 1; i<numLayers; i++)

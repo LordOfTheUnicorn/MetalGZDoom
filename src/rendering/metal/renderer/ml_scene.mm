@@ -51,7 +51,7 @@
 #include "hwrenderer/utility/hw_vrmodes.h"
 #include "metal/renderer/ml_renderer.h"
 #include "metal/system/ml_buffer.h"
-
+EXTERN_CVAR(Bool, gl_no_skyclear)
 CVAR(Bool, ml_no_skyclear, false, CVAR_ARCHIVE|CVAR_GLOBALCONFIG)
 
 namespace MetalRenderer

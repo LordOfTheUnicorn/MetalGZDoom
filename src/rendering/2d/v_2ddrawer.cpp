@@ -360,11 +360,11 @@ void F2DDrawer::AddTexture(FTexture *img, DrawParms &parms)
 	u2 = parms.srcx + parms.srcwidth;
 	v2 = parms.srcy + parms.srcheight;
 
-	if (parms.flipX) 
-		std::swap(u1, u2);
+	//if (!parms.flipX)
+	//	std::swap(u1, u2);
 
-	if (parms.flipY)
-		std::swap(v1, v2);
+	//if (!parms.flipY)
+	//	std::swap(v1, v2);
 
 	// This is crap. Only kept for backwards compatibility with scripts that may have used it.
 	// Note that this only works for unflipped full textures.
