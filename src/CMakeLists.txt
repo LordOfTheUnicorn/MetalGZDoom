@@ -818,8 +818,27 @@ set (VULKAN_SOURCES
 	rendering/vulkan/thirdparty/vk_mem_alloc/vk_mem_alloc.cpp
 )
 
+set (METAL_SOURCES
+	rendering/metal/renderer/ml_postprocess.mm
+	rendering/metal/renderer/ml_postprocessstate.mm
+	rendering/metal/renderer/ml_renderer.mm
+	rendering/metal/renderer/ml_renderstate.mm
+	rendering/metal/renderer/ml_scene.mm
+	rendering/metal/renderer/ml_stereo3d.mm
+	rendering/metal/renderer/ml_streambuffer.mm
+	rendering/metal/renderer/ml_renderbuffers.mm
+	rendering/metal/system/MetalCocoaView.mm
+	rendering/metal/system/ml_buffer.mm
+	rendering/metal/system/ml_framebuffer.mm
+	rendering/metal/shaders/ml_shader.mm
+	rendering/metal/textures/ml_hwtexture.mm
+	rendering/metal/textures/ml_samplers.mm)
+
 if (HAVE_VULKAN)
 	set (FASTMATH_SOURCES ${FASTMATH_SOURCES} ${VULKAN_SOURCES})
+endif()
+if (OSX_COCOA_BACKEND)
+	set (FASTMATH_SOURCES ${FASTMATH_SOURCES} ${METAL_SOURCES})
 endif()
 
 set (PCH_SOURCES
@@ -1315,6 +1334,9 @@ if( APPLE )
 
 	if( HAVE_VULKAN )
 		set( LINK_FRAMEWORKS "${LINK_FRAMEWORKS} -framework QuartzCore" )
+	endif()
+	if ( OSX_COCOA_BACKEND )
+		set( LINK_FRAMEWORKS "${LINK_FRAMEWORKS} -framework Metal" )
 	endif()
 
 	set_target_properties(zdoom PROPERTIES
