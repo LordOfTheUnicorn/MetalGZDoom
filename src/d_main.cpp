@@ -1004,8 +1004,6 @@ void D_DoomLoop ()
 
 	for (;;)
 	{
-        @autoreleasepool
-        {
 		try
 		{
 			// frame syncronous IO operations
@@ -1062,7 +1060,6 @@ void D_DoomLoop ()
 			Printf("%s", error.stacktrace.GetChars());
 			D_ErrorCleanup();
 		}
-        }
 	}
 }
 
