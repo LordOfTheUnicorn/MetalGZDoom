@@ -37,6 +37,9 @@
 #include "metal/renderer/ml_renderer.h"
 #include "metal/renderer/ml_renderstate.h"
 #include "metal/renderer/ml_renderbuffers.h"
+
+#include "v_text.h"
+
 EXTERN_CVAR(Bool, r_drawvoxels)
 EXTERN_CVAR(Int, gl_tonemap)
 void Draw2D(F2DDrawer *drawer, FRenderState &state);
@@ -177,6 +180,18 @@ void MetalFrameBuffer::InitializeState()
     MLRenderer = new MTLRenderer(this);
     MLRenderer->Initialize(GetWidth(), GetHeight(),this->GetDevice());
     
+    static bool first = true;
+    if (first)
+    {
+        Printf("Metal device:" TEXTCOLOR_ORANGE " %s\n",[[MLRenderer->framebuffer->GetDevice() name] UTF8String]);
+        FString deviceType = "";
+        if ([MLRenderer->framebuffer->GetDevice() isRemovable]) deviceType += "removable";
+        if (!deviceType.IsEmpty()) deviceType += ", ";
+        if ([MLRenderer->framebuffer->GetDevice() isLowPower]) deviceType = "integrated";
+        else deviceType += "discrete";
+        Printf("Metal device type: %s\n", deviceType.GetChars());
+    }
+
     //static_cast<MTLDataBuffer*>(mLights->GetBuffer())->BindBase();
 }
 

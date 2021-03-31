@@ -648,6 +648,11 @@ file( GLOB HEADER_FILES
 	rendering/vulkan/renderer/*.h
 	rendering/vulkan/shaders/*.h
 	rendering/vulkan/textures/*.h
+	rendering/metal/*.h
+	rendering/metal/system/*.h
+	rendering/metal/renderer/*.h
+	rendering/metal/shaders/*.h
+	rendering/metal/textures/*.h
 	rendering/gl/*.h
 	rendering/gl/models/*.h
 	rendering/gl/renderer/*.h
@@ -1398,6 +1403,10 @@ source_group("Rendering\\Vulkan Renderer\\Textures" REGULAR_EXPRESSION "^${CMAKE
 source_group("Rendering\\Vulkan Renderer\\Third Party" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/vulkan/thirdparty/.+")
 source_group("Rendering\\Vulkan Renderer\\Third Party\\Volk" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/vulkan/thirdparty/volk/.+")
 source_group("Rendering\\Vulkan Renderer\\Third Party\\Vk_Mem_Alloc" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/vulkan/thirdparty/vk_mem_alloc.+")
+source_group("Rendering\\Metal Renderer\\System" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/metal/system/.+")
+source_group("Rendering\\Metal Renderer\\Renderer" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/metal/renderer/.+")
+source_group("Rendering\\Metal Renderer\\Shaders" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/metal/shaders/.+")
+source_group("Rendering\\Metal Renderer\\Textures" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/metal/textures/.+")
 source_group("Rendering\\OpenGL Loader" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/gl_load/.+")
 source_group("Rendering\\OpenGL Renderer" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/gl/.+")
 source_group("Rendering\\OpenGL Renderer\\Data" REGULAR_EXPRESSION "^${CMAKE_CURRENT_SOURCE_DIR}/rendering/gl/data/.+")
