@@ -22,6 +22,7 @@
 
 #include "templates.h"
 #include "doomstat.h"
+#include "w_wad.h"
 #include "r_data/colormaps.h"
 #include "gl_load/gl_system.h"
 #include "gl_load/gl_interface.h"
@@ -246,13 +247,31 @@ void MTLRenderState::InitialaziState()
 {
     Reset();
     NSError* error = nil;
-    if (defaultLibrary == nil) defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib"
-                                                                     error:&error];
+    if (defaultLibrary == nil)
+    {
+ //       defaultLibrary =
+//        [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib" error:&error];
+        int shaderLump = Wads.CheckNumForFullName("shaders/metal/mainVP.metal",0);
+        if (shaderLump == -1)
+        {
+            I_FatalError("shaders/metal/mainVP.metal not found!");
+        }
+        FMemLump shaderLumpMem = Wads.ReadLump(shaderLump);
+		NSString* shaderString = [[NSString alloc] initWithUTF8String:shaderLumpMem.GetString().GetChars()];
+		MTLCompileOptions* compileOptions = [[MTLCompileOptions alloc] init];
+		compileOptions.fastMathEnabled = false;
+		compileOptions.languageVersion = MTLLanguageVersion2_2;
+		
+		
+		defaultLibrary = [device newLibraryWithSource: shaderString
+											   options: compileOptions
+						  error:&error];
+    }
     if (VShader == nil)        VShader = [defaultLibrary newFunctionWithName:@"VertexMainSimple"];
     if (FShader  == nil)       FShader = [defaultLibrary newFunctionWithName:@"FragmentMainSimple"];
     if (commandQueue == nil)   commandQueue = [device newCommandQueueWithMaxCommandBufferCount:512];
     needCpyBuffer = true;
-    if(error)
+    if (error && defaultLibrary == nil)
     {
         NSLog(@"Failed to created pipeline state, error %@", error);
         assert(true);

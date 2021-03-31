@@ -465,8 +465,25 @@ void MTLRenderer::RenderScreenQuad()
     vertexDesc.layouts[1].stepFunction = MTLVertexStepFunctionPerVertex;
     //##############################################################
     NSError* error = nil;
-    OBJC_ID(MTLLibrary) _defaultLibrary = [device newLibraryWithFile: @"/Users/unicorn1343/Documents/GitHub/gzdoom/metalShaders/doomMetallib.metallib" error:&error];
-    if (error)
+	OBJC_ID(MTLLibrary) _defaultLibrary;
+
+	{
+        int shaderLump = Wads.CheckNumForFullName("shaders/metal/mainVP.metal",0);
+        if (shaderLump == -1)
+        {
+            I_FatalError("shaders/metal/mainVP.metal not found!");
+        }
+        FMemLump shaderLumpMem = Wads.ReadLump(shaderLump);
+		NSString* shaderString = [[NSString alloc] initWithUTF8String:shaderLumpMem.GetString().GetChars()];
+		MTLCompileOptions* compileOptions = [[MTLCompileOptions alloc] init];
+		compileOptions.fastMathEnabled = false;
+		compileOptions.languageVersion = MTLLanguageVersion2_2;
+
+		_defaultLibrary = [device newLibraryWithSource: shaderString
+											   options: compileOptions
+						  error:&error];
+	}
+    if (error && _defaultLibrary == nil)
         assert(true);
     OBJC_ID(MTLFunction) vs = [_defaultLibrary newFunctionWithName:@"vertexSecondRT"];
     OBJC_ID(MTLFunction) fs = [_defaultLibrary newFunctionWithName:@"fragmentSecondRT"];
@@ -479,7 +496,7 @@ void MTLRenderer::RenderScreenQuad()
     
     if (MLRenderer->ml_RenderState->pipelineState[PIPELINE_STATE] == nil)
         MLRenderer->ml_RenderState->pipelineState[PIPELINE_STATE] = [device newRenderPipelineStateWithDescriptor:pipelineDesc  error:&error];
-    if(error)
+    if(error && _defaultLibrary == nil)
     {
         NSLog(@"Failed to created pipeline state, error %@", error);
     }
