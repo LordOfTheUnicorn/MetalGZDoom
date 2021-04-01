@@ -770,6 +770,7 @@ void MTLRenderState::EndFrame()
     
     [renderCommandEncoder endEncoding];    
     [commandBuffer commit];
+    [commandBuffer waitUntilCompleted];
     currentIndexVB = currentIndexVB == 2 ? 0 : currentIndexVB + 1;
     offsetVB[0] = offsetVB[1] = 0;
     offsetIB[0] = offsetIB[1] = 0;

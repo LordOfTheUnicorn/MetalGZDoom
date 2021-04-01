@@ -101,6 +101,7 @@ EXTERN_CVAR(Bool, vid_hidpi)
 EXTERN_CVAR(Int,  vid_defwidth)
 EXTERN_CVAR(Int,  vid_defheight)
 EXTERN_CVAR(Int,  vid_enablevulkan)
+EXTERN_CVAR(Bool, vid_vsync    )
 EXTERN_CVAR(Bool, vk_debug)
 
 CVAR(Bool, mvk_debug, false, 0)
@@ -430,7 +431,7 @@ public:
             if (fb == nullptr)
                 fb = new MetalRenderer::MetalFrameBuffer(nullptr, fullscreen);
             const NSRect rect = [ms_window contentRectForFrameRect:[ms_window frame]];
-            MetalRenderer::m_view = [[MetalCocoaView alloc] initWithFrame:rect device:MetalRenderer::device vsync:YES Str:@"NewView"];
+            MetalRenderer::m_view = [[MetalCocoaView alloc] initWithFrame:rect device:MetalRenderer::device vsync:vid_vsync Str:@"NewView"];
             [ms_window setContentView:(NSView*)MetalRenderer::m_view];
             [ms_window setDelegate:(MetalCocoaView*)MetalRenderer::m_view];
             metalView = MetalRenderer::m_view;
