@@ -38,6 +38,7 @@
 - (void)setCursor:(NSCursor*)cursor;
 - (OBJC_ID(CAMetalDrawable))getDrawable;
 - (id)initWithFrame:(NSRect)FrameRect device:(OBJC_ID(MTLDevice))device vsync:(bool)vsync Str:(NSString*)Str;
+- (CAMetalLayer *)getMetalLayer;
 @end
 
 #endif /* MetalCocoaView_h */

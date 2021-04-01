@@ -37,13 +37,14 @@
 #include "metal/renderer/ml_renderer.h"
 #include "metal/renderer/ml_renderstate.h"
 #include "metal/renderer/ml_renderbuffers.h"
+#include "metal/system/MetalCocoaView.h"
 
 #include "v_text.h"
 
 EXTERN_CVAR(Bool, r_drawvoxels)
 EXTERN_CVAR(Int, gl_tonemap)
 void Draw2D(F2DDrawer *drawer, FRenderState &state);
-//MetalCocoaView* GetMacWindow();
+MetalCocoaView* GetMacWindow();
 
 namespace MetalRenderer
 {
@@ -224,7 +225,11 @@ IIndexBuffer *MetalFrameBuffer::CreateIndexBuffer()
 
 void MetalFrameBuffer::SetVSync(bool vsync)
 {
-    cur_vsync = vsync;
+	cur_vsync = vsync;
+	if (@available(macOS 10.13, *))
+	{
+		[[GetMacWindow() getMetalLayer] setDisplaySyncEnabled:cur_vsync];
+    }
 }
 
 void MetalFrameBuffer::PostProcessScene(int fixedcm, const std::function<void()> &afterBloomDrawEndScene2D)

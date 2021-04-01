@@ -80,4 +80,9 @@
     return metalLayer.nextDrawable;
 }
 
+-(CAMetalLayer *)getMetalLayer
+{
+    return metalLayer;
+}
+
 @end
